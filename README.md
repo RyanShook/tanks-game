@@ -29,7 +29,7 @@ You can play the game directly in your browser: [Play 3D Wireframe Tanks](#) (UR
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/tanks-game.git
+git clone https://github.com/ryanshook/tanks-game.git
 ```
 
 2. Serve the files using a local web server. For example, using Python:
