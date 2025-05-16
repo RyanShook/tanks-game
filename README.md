@@ -4,7 +4,7 @@ A retro-style 3D tank combat game built with Three.js, featuring wireframe graph
 
 ## Play Now
 
-You can play the game directly in your browser: [Play 3D Wireframe Tanks](#) (URL will be added after deployment)
+You can play the game directly in your browser: [Play 3D Wireframe Tanks](https://RyanShook.github.io/tanks-game) (URL will be added after deployment)
 
 ## Features
 
@@ -29,7 +29,7 @@ You can play the game directly in your browser: [Play 3D Wireframe Tanks](#) (UR
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/ryanshook/tanks-game.git
+git clone https://github.com/RyanShook/tanks-game.git
 ```
 
 2. Serve the files using a local web server. For example, using Python:
