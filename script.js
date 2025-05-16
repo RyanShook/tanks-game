@@ -1,64 +1,66 @@
 import * as THREE from 'three';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
-// Object Pools
-class ObjectPool {
-    constructor(createFn, initialSize = 20) {
-        this.createFn = createFn;
-        this.objects = Array(initialSize).fill(null).map(() => ({
-            object: this.createFn(),
-            inUse: false
-        }));
-    }
+// Game Constants
+const VECTOR_GREEN = 0x00ff00;
+const VECTOR_MATERIAL = new THREE.LineBasicMaterial({ 
+    color: VECTOR_GREEN,
+    linewidth: 1
+});
 
-    acquire() {
-        let obj = this.objects.find(o => !o.inUse);
-        if (!obj) {
-            obj = { object: this.createFn(), inUse: false };
-            this.objects.push(obj);
-        }
-        obj.inUse = true;
-        return obj.object;
-    }
+// Game Parameters
+const GAME_PARAMS = {
+    // Player settings
+    MOVE_SPEED: 0.1,
+    ROTATION_SPEED: 0.03,
+    MAX_HEALTH: 100,
+    MAX_HITS: 3,
+    
+    // Projectile settings
+    PROJECTILE_SPEED: 0.8,
+    PROJECTILE_MAX_DISTANCE: 150,
+    PROJECTILE_GRAVITY: 0.001,
+    
+    // Enemy settings
+    ENEMY_SPEED: 0.05,
+    ENEMY_TURN_SPEED: 0.02,
+    ENEMY_SHOT_INTERVAL: 3000,
+    ENEMY_IDEAL_DISTANCE: 20,
+    
+    // World settings
+    GRID_SIZE: 200,
+    GRID_DIVISIONS: 20,
+    MOUNTAIN_DISTANCE: 140, // 70% of grid size
+    NUM_MOUNTAINS: 16,
+    NUM_OBSTACLES: 25,
+    WORLD_BOUNDS: 90,
+    
+    // Scoring
+    TANK_SCORE: 1000,
+    BONUS_LIFE_SCORE: 15000
+};
 
-    release(object) {
-        const obj = this.objects.find(o => o.object === object);
-        if (obj) {
-            obj.inUse = false;
-            object.visible = false;
-        }
-    }
-}
-
-let projectilePool, explosionPool;
-
+// Game State
 let scene, camera, renderer;
 let tankBody, tankTurret, tankCannon;
-let enemyTanks = []; // Array to store enemy tanks
-let playerHealth = 100;
+let enemyTanks = [];
+let obstacles = [];
+let projectiles = [];
+let projectilePool, explosionPool;
+let score = 0;
+let playerHealth = GAME_PARAMS.MAX_HEALTH;
 let playerHitCount = 0;
 let isGameOver = false;
 let playerInvulnerable = false;
-const playerMaxHits = 3;
 
-// Movement states
+// Input State
 const keyboardState = {};
-const moveSpeed = 0.1;
-const rotationSpeed = 0.03;
+let handleKeyDown, handleKeyUp;
 
-// Obstacles and scenery
-const obstacles = [];
-const projectiles = [];
-const projectileSpeed = 0.8; // Slightly reduced for better control
-const projectileMaxDistance = 150;
-const projectileGravity = 0.001; // Small amount of gravity for slight arc
-
+// HUD Elements
 let labelRenderer;
 let healthLabel;
 let gameOverScreen;
-
-// Add these declarations at the top with other globals
-let handleKeyDown, handleKeyUp;
 
 // Sound System
 const audioListener = new THREE.AudioListener();
@@ -112,60 +114,149 @@ window.addEventListener('load', () => {
     init();
 });
 
+// Object Pool System
+class ObjectPool {
+    constructor(createFn, initialSize = 20) {
+        this.createFn = createFn;
+        this.objects = Array(initialSize).fill(null).map(() => ({
+            object: this.createFn(),
+            inUse: false
+        }));
+    }
+
+    acquire() {
+        let obj = this.objects.find(o => !o.inUse);
+        if (!obj) {
+            obj = { object: this.createFn(), inUse: false };
+            this.objects.push(obj);
+        }
+        obj.inUse = true;
+        return obj.object;
+    }
+
+    release(object) {
+        const obj = this.objects.find(o => o.object === object);
+        if (obj) {
+            obj.inUse = false;
+            object.visible = false;
+        }
+    }
+}
+
+// Enemy Tank Class
 class EnemyTank {
     constructor(scene, position) {
-        const bodyWidth = 2;
-        const bodyHeight = 1;
-        const bodyDepth = 3;
-        const tankMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0xff0000,
-            wireframe: true,
-            side: THREE.DoubleSide,
-            emissive: 0xff0000,
-            emissiveIntensity: 0.5
-        });
+        // Tank dimensions
+        this.dimensions = {
+            body: { width: 2, height: 1, depth: 3 },
+            turret: { radius: 0.6, height: 0.8 },
+            cannon: { radius: 0.15, length: 2 }
+        };
 
-        // Create main body
-        this.body = createTankBody(bodyWidth, bodyHeight, bodyDepth, tankMaterial);
+        // Create tank parts
+        this.body = createTankBody(
+            this.dimensions.body.width,
+            this.dimensions.body.height,
+            this.dimensions.body.depth
+        );
         this.body.position.copy(position);
         this.body.position.y = 0.5;
 
-        // Create turret
-        this.turret = createTurret(0.6, 0.8, tankMaterial);
-        this.turret.position.y = bodyHeight;
+        this.turret = createTurret(
+            this.dimensions.turret.radius,
+            this.dimensions.turret.height
+        );
+        this.turret.position.y = this.dimensions.body.height;
         this.body.add(this.turret);
 
-        // Create cannon
-        this.cannon = createCannon(0.15, 2, tankMaterial);
+        this.cannon = createCannon(
+            this.dimensions.cannon.radius,
+            this.dimensions.cannon.length
+        );
         this.cannon.position.y = 0.1;
         this.turret.add(this.cannon);
 
-        // Basic properties
-        this.speed = 0.05;
-        this.turnSpeed = 0.02;
-        this.health = 100;
+        // State
+        this.health = GAME_PARAMS.MAX_HEALTH;
         this.isDestroyed = false;
         this.lastShotTime = Date.now();
-        this.shotInterval = 3000;
         this.scene = scene;
+        this.state = 'seeking'; // seeking, attacking, retreating
+        this.stateTimer = 0;
 
         scene.add(this.body);
     }
 
-    takeDamage(amount) {
+    update() {
         if (this.isDestroyed) return;
-        
+
+        const now = Date.now();
+        const previousPosition = this.body.position.clone();
+        const toPlayer = tankBody.position.clone().sub(this.body.position);
+        const distanceToPlayer = toPlayer.length();
+
+        // Update state
+        if (this.stateTimer < now) {
+            if (Math.random() < 0.3) { // 30% chance to change state
+                this.state = Math.random() < 0.7 ? 'seeking' : 'retreating';
+                this.stateTimer = now + 2000 + Math.random() * 3000;
+            }
+        }
+
+        // Movement based on state
+        if (this.state === 'seeking' && distanceToPlayer > GAME_PARAMS.ENEMY_IDEAL_DISTANCE) {
+            this.body.lookAt(tankBody.position);
+            this.body.translateZ(GAME_PARAMS.ENEMY_SPEED);
+        } else if (this.state === 'retreating' || distanceToPlayer < GAME_PARAMS.ENEMY_IDEAL_DISTANCE - 5) {
+            this.body.lookAt(tankBody.position);
+            this.body.translateZ(-GAME_PARAMS.ENEMY_SPEED);
+        }
+
+        // Collision check and boundary enforcement
+        if (checkTerrainCollision(this.body.position, 2)) {
+            this.body.position.copy(previousPosition);
+        }
+
+        this.body.position.x = THREE.MathUtils.clamp(
+            this.body.position.x,
+            -GAME_PARAMS.WORLD_BOUNDS,
+            GAME_PARAMS.WORLD_BOUNDS
+        );
+        this.body.position.z = THREE.MathUtils.clamp(
+            this.body.position.z,
+            -GAME_PARAMS.WORLD_BOUNDS,
+            GAME_PARAMS.WORLD_BOUNDS
+        );
+
+        // Aim at player
+        this.turret.lookAt(tankBody.position);
+
+        // Fire if conditions are met
+        if (now - this.lastShotTime > GAME_PARAMS.ENEMY_SHOT_INTERVAL && 
+            distanceToPlayer < 40 && 
+            this.state === 'seeking') {
+            this.fireAtPlayer();
+            this.lastShotTime = now;
+        }
+    }
+
+    takeDamage(amount) {
         this.health -= amount;
-        if (this.health <= 0) {
+        if (this.health <= 0 && !this.isDestroyed) {
             this.destroy();
+            score += GAME_PARAMS.TANK_SCORE;
+            // Check for bonus life
+            if (Math.floor(score / GAME_PARAMS.BONUS_LIFE_SCORE) > 
+                Math.floor((score - GAME_PARAMS.TANK_SCORE) / GAME_PARAMS.BONUS_LIFE_SCORE)) {
+                playerHitCount = Math.max(0, playerHitCount - 1);
+                updateHealthDisplay();
+            }
         }
     }
 
     destroy() {
         this.isDestroyed = true;
-        
-        // Create a series of explosions for dramatic effect
-        createExplosion(this.body.position, 0xff0000, 3);  // Large center explosion
+        createExplosion(this.body.position, VECTOR_GREEN, 3);
         
         // Create smaller explosions around the tank
         for (let i = 0; i < 5; i++) {
@@ -176,53 +267,11 @@ class EnemyTank {
             );
             const position = this.body.position.clone().add(offset);
             setTimeout(() => {
-                createExplosion(position, 0xff5500, 1 + Math.random());
-            }, i * 100);  // Stagger the explosions
+                createExplosion(position, VECTOR_GREEN, 1 + Math.random());
+            }, i * 100);
         }
 
-        // Remove the tank from scene
         this.scene.remove(this.body);
-    }
-
-    update() {
-        if (this.isDestroyed) return;
-
-        const previousPosition = this.body.position.clone();
-
-        // Simple movement - move towards player if far, away if too close
-        const toPlayer = tankBody.position.clone().sub(this.body.position);
-        const distanceToPlayer = toPlayer.length();
-        const idealDistance = 20;
-
-        if (distanceToPlayer > idealDistance + 5) {
-            // Move towards player
-            this.body.lookAt(tankBody.position);
-            this.body.translateZ(this.speed);
-        } else if (distanceToPlayer < idealDistance - 5) {
-            // Move away from player
-            this.body.lookAt(tankBody.position);
-            this.body.translateZ(-this.speed);
-        }
-
-        // Check collisions
-        if (checkTerrainCollision(this.body.position, 2)) {
-            this.body.position.copy(previousPosition);
-        }
-
-        // Keep within boundaries
-        const maxDistance = 90;
-        this.body.position.x = THREE.MathUtils.clamp(this.body.position.x, -maxDistance, maxDistance);
-        this.body.position.z = THREE.MathUtils.clamp(this.body.position.z, -maxDistance, maxDistance);
-
-        // Aim at player
-        this.turret.lookAt(tankBody.position);
-
-        // Try to fire
-        const now = Date.now();
-        if (now - this.lastShotTime > this.shotInterval && distanceToPlayer < 40) {
-            this.fireAtPlayer();
-            this.lastShotTime = now;
-        }
     }
 
     fireAtPlayer() {
@@ -235,24 +284,20 @@ class EnemyTank {
         this.cannon.getWorldPosition(cannonWorldPos);
         projectile.position.copy(cannonWorldPos);
 
-        const toPlayer = tankBody.position.clone().sub(cannonWorldPos).normalize();
-        projectile.userData.velocity = toPlayer.multiplyScalar(projectileSpeed * 0.8);
+        const toPlayer = tankBody.position.clone()
+            .sub(cannonWorldPos)
+            .normalize()
+            .multiplyScalar(GAME_PARAMS.PROJECTILE_SPEED * 0.8);
+
+        projectile.userData.velocity = toPlayer;
         projectile.userData.distanceTraveled = 0;
         projectile.userData.creationTime = Date.now();
         projectile.userData.isEnemyProjectile = true;
 
-        this.scene.add(projectile);
         projectiles.push(projectile);
 
         // Muzzle flash
-        const muzzleFlash = explosionPool.acquire();
-        muzzleFlash.visible = true;
-        muzzleFlash.position.copy(cannonWorldPos);
-        muzzleFlash.scale.set(0.3, 0.3, 0.3);
-
-        setTimeout(() => {
-            explosionPool.release(muzzleFlash);
-        }, 100);
+        createExplosion(cannonWorldPos, VECTOR_GREEN, 0.3);
     }
 }
 
@@ -269,114 +314,133 @@ function createMountain(size, position) {
 function createMapObstacle(position) {
     const size = 1 + Math.random() * 1.5;
     const geometry = new THREE.TetrahedronGeometry(size);
-    const material = new THREE.MeshStandardMaterial({ color: 0x00dd00, wireframe: true });
-    const obstacle = new THREE.Mesh(geometry, material);
+    const obstacle = new THREE.LineSegments(
+        new THREE.EdgesGeometry(geometry),
+        new THREE.LineBasicMaterial({ color: 0x00ff00 })
+    );
     obstacle.position.set(position.x, size * 0.5 - 0.5, position.z);
     obstacle.rotation.y = Math.random() * Math.PI * 2;
     return obstacle;
 }
 
-function createTankBody(width, height, depth, material) {
-    const tankGroup = new THREE.Group();
-    const halfDepth = depth / 2;
-    const halfWidth = width / 2;
-    const halfHeight = height / 2;
-
-    // Main hull (slightly angled sides)
-    const hullShape = new THREE.Shape();
-    hullShape.moveTo(-halfWidth, -halfDepth);
-    hullShape.lineTo(halfWidth, -halfDepth);
-    hullShape.lineTo(halfWidth * 0.8, halfDepth);
-    hullShape.lineTo(-halfWidth * 0.8, halfDepth);
-    hullShape.lineTo(-halfWidth, -halfDepth);
-
-    const extrudeSettings = {
-        steps: 1,
-        depth: height,
-        bevelEnabled: false
-    };
-
-    const hullGeometry = new THREE.ExtrudeGeometry(hullShape, extrudeSettings);
-    const hull = new THREE.Mesh(hullGeometry, material);
-    hull.rotation.x = -Math.PI / 2;
-    hull.position.y = 0;
-    tankGroup.add(hull);
-
-    // Tracks
-    const trackWidth = 0.3;
-    const trackGeometry = new THREE.BoxGeometry(trackWidth, height * 0.3, depth);
+function createBattlezoneMountain(size, position) {
+    const points = [];
     
-    // Left track
-    const leftTrack = new THREE.Mesh(trackGeometry, material);
-    leftTrack.position.set(-halfWidth - trackWidth/2, -height * 0.3, 0);
-    tankGroup.add(leftTrack);
-
-    // Right track
-    const rightTrack = new THREE.Mesh(trackGeometry, material);
-    rightTrack.position.set(halfWidth + trackWidth/2, -height * 0.3, 0);
-    tankGroup.add(rightTrack);
-
-    // Front armor plate (angled)
-    const frontPlateGeometry = new THREE.PlaneGeometry(width * 0.8, height * 0.7);
-    const frontPlate = new THREE.Mesh(frontPlateGeometry, material);
-    frontPlate.position.z = halfDepth;
-    frontPlate.position.y = height * 0.15;
-    frontPlate.rotation.x = -Math.PI * 0.1;
-    tankGroup.add(frontPlate);
-
-    // Rear armor plate (angled)
-    const rearPlateGeometry = new THREE.PlaneGeometry(width * 0.9, height * 0.8);
-    const rearPlate = new THREE.Mesh(rearPlateGeometry, material);
-    rearPlate.position.z = -halfDepth;
-    rearPlate.position.y = height * 0.1;
-    rearPlate.rotation.x = Math.PI + Math.PI * 0.1;
-    tankGroup.add(rearPlate);
-
-    return tankGroup;
+    // Battlezone mountains are simple pyramids with a triangular profile
+    points.push(
+        new THREE.Vector3(-size * 0.5, 0, 0),      // Left base
+        new THREE.Vector3(0, size * 1.2, 0),       // Peak
+        new THREE.Vector3(size * 0.5, 0, 0),       // Right base
+        new THREE.Vector3(-size * 0.5, 0, 0)       // Close the shape
+    );
+    
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const mountain = new THREE.Line(geometry, VECTOR_MATERIAL);
+    
+    // Position and orient the mountain
+    mountain.position.copy(position);
+    mountain.lookAt(new THREE.Vector3(0, mountain.position.y, 0));
+    
+    return mountain;
 }
 
-function createTurret(radius, height, material) {
-    const turretGroup = new THREE.Group();
-
-    // Main turret body (octagonal)
-    const segments = 8;
-    const turretGeometry = new THREE.CylinderGeometry(radius, radius * 1.1, height, segments);
-    const turret = new THREE.Mesh(turretGeometry, material);
-    turretGroup.add(turret);
-
-    // Turret top (slightly domed)
-    const topGeometry = new THREE.SphereGeometry(radius, segments, segments, 0, Math.PI * 2, 0, Math.PI / 2);
-    const top = new THREE.Mesh(topGeometry, material);
-    top.position.y = height / 2;
-    turretGroup.add(top);
-
-    // Commander's hatch
-    const hatchRadius = radius * 0.4;
-    const hatchGeometry = new THREE.CylinderGeometry(hatchRadius, hatchRadius, height * 0.2, segments);
-    const hatch = new THREE.Mesh(hatchGeometry, material);
-    hatch.position.set(-radius * 0.3, height / 2, 0);
-    turretGroup.add(hatch);
-
-    return turretGroup;
+function createTankBody(width, height, depth) {
+    const points = [];
+    
+    // Front trapezoid
+    points.push(
+        // Front face (wider at bottom, narrower at top)
+        new THREE.Vector3(-width/2, 0, -depth/2),          // Bottom left
+        new THREE.Vector3(-width/3, height, -depth/3),     // Top left
+        new THREE.Vector3(width/3, height, -depth/3),      // Top right
+        new THREE.Vector3(width/2, 0, -depth/2),          // Bottom right
+        new THREE.Vector3(-width/2, 0, -depth/2)          // Close front face
+    );
+    
+    // Back trapezoid
+    points.push(
+        new THREE.Vector3(-width/2, 0, depth/2),          // Bottom left back
+        new THREE.Vector3(-width/3, height, depth/3),     // Top left back
+        new THREE.Vector3(width/3, height, depth/3),      // Top right back
+        new THREE.Vector3(width/2, 0, depth/2),          // Bottom right back
+        new THREE.Vector3(-width/2, 0, depth/2)          // Close back face
+    );
+    
+    // Connect front to back
+    points.push(
+        // Bottom rectangle
+        new THREE.Vector3(-width/2, 0, -depth/2),
+        new THREE.Vector3(-width/2, 0, depth/2),
+        new THREE.Vector3(width/2, 0, depth/2),
+        new THREE.Vector3(width/2, 0, -depth/2),
+        
+        // Top rectangle
+        new THREE.Vector3(-width/3, height, -depth/3),
+        new THREE.Vector3(-width/3, height, depth/3),
+        new THREE.Vector3(width/3, height, depth/3),
+        new THREE.Vector3(width/3, height, -depth/3)
+    );
+    
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    return new THREE.LineSegments(geometry, VECTOR_MATERIAL);
 }
 
-function createCannon(radius, length, material) {
-    const cannonGroup = new THREE.Group();
+function createTurret(radius, height) {
+    const points = [];
+    const segments = 6; // Hexagonal turret like the original
+    
+    // Top hexagon
+    for (let i = 0; i <= segments; i++) {
+        const angle = (i / segments) * Math.PI * 2;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        points.push(
+            new THREE.Vector3(x, height, z),
+            new THREE.Vector3(
+                Math.cos(((i + 1) % segments) / segments * Math.PI * 2) * radius,
+                height,
+                Math.sin(((i + 1) % segments) / segments * Math.PI * 2) * radius
+            )
+        );
+    }
+    
+    // Vertical lines
+    for (let i = 0; i < segments; i++) {
+        const angle = (i / segments) * Math.PI * 2;
+        const x = Math.cos(angle) * radius;
+        const z = Math.sin(angle) * radius;
+        points.push(
+            new THREE.Vector3(x, 0, z),
+            new THREE.Vector3(x, height, z)
+        );
+    }
+    
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    return new THREE.LineSegments(geometry, VECTOR_MATERIAL);
+}
 
-    // Main gun barrel
-    const barrelGeometry = new THREE.CylinderGeometry(radius, radius * 0.9, length, 8);
-    const barrel = new THREE.Mesh(barrelGeometry, material);
-    barrel.rotation.z = Math.PI / 2;
-    barrel.position.x = length / 2;
-    cannonGroup.add(barrel);
-
-    // Gun mantlet (the reinforced area where the gun meets the turret)
-    const mantletGeometry = new THREE.CylinderGeometry(radius * 2, radius * 2, radius * 2, 8);
-    const mantlet = new THREE.Mesh(mantletGeometry, material);
-    mantlet.rotation.z = Math.PI / 2;
-    cannonGroup.add(mantlet);
-
-    return cannonGroup;
+function createCannon(radius, length) {
+    const points = [];
+    
+    // Simple rectangular cannon (two parallel lines)
+    points.push(
+        // Top line
+        new THREE.Vector3(0, radius, 0),
+        new THREE.Vector3(length, radius, 0),
+        
+        // Bottom line
+        new THREE.Vector3(0, -radius, 0),
+        new THREE.Vector3(length, -radius, 0),
+        
+        // Front end
+        new THREE.Vector3(length, -radius, 0),
+        new THREE.Vector3(length, radius, 0)
+    );
+    
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const cannon = new THREE.LineSegments(geometry, VECTOR_MATERIAL);
+    cannon.rotation.z = Math.PI / 2;
+    return cannon;
 }
 
 function fireProjectile() {
@@ -399,7 +463,7 @@ function fireProjectile() {
     direction.applyQuaternion(tankBody.quaternion);
 
     // Store velocity and reset distance
-    projectile.userData.velocity = direction.multiplyScalar(projectileSpeed);
+    projectile.userData.velocity = direction.multiplyScalar(GAME_PARAMS.PROJECTILE_SPEED);
     projectile.userData.distanceTraveled = 0;
     projectile.userData.creationTime = Date.now();
     projectile.userData.isEnemyProjectile = false;
@@ -466,7 +530,7 @@ function createHUD() {
 }
 
 function updateHealthDisplay() {
-    const hits = playerMaxHits - playerHitCount;
+    const hits = GAME_PARAMS.MAX_HITS - playerHitCount;
     const healthBar = '█'.repeat(hits) + '░'.repeat(playerHitCount);
     healthLabel.innerHTML = `ARMOR: ${healthBar}`;
     healthLabel.style.color = playerInvulnerable ? '#ffff00' : '#00ff00';
@@ -516,7 +580,7 @@ function handleRestart(event) {
 
 function resetGame() {
     // Reset player state
-    playerHealth = 100;
+    playerHealth = GAME_PARAMS.MAX_HEALTH;
     playerHitCount = 0;
     isGameOver = false;
     playerInvulnerable = false;
@@ -575,18 +639,15 @@ function resetGame() {
 function init() {
     // Create scene
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000000);
+    scene.background = new THREE.Color(0x000000);  // Pure black background
 
     // Initialize object pools
     projectilePool = new ObjectPool(() => {
         const projectileGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.4, 8);
-        const projectileMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x00ff00,
-            wireframe: true,
-            emissive: 0x00ff00,
-            emissiveIntensity: 0.5
-        });
-        const projectile = new THREE.Mesh(projectileGeometry, projectileMaterial);
+        const projectile = new THREE.LineSegments(
+            new THREE.EdgesGeometry(projectileGeometry),
+            VECTOR_MATERIAL
+        );
         projectile.visible = false;
         scene.add(projectile);
         return projectile;
@@ -596,13 +657,10 @@ function init() {
         const particles = new THREE.Group();
         for (let i = 0; i < 8; i++) {
             const geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
-            const material = new THREE.MeshStandardMaterial({
-                color: 0xff0000,
-                wireframe: true,
-                emissive: 0xff0000,
-                emissiveIntensity: 0.5
-            });
-            const particle = new THREE.Mesh(geometry, material);
+            const particle = new THREE.LineSegments(
+                new THREE.EdgesGeometry(geometry),
+                VECTOR_MATERIAL
+            );
             particles.add(particle);
         }
         particles.visible = false;
@@ -611,7 +669,8 @@ function init() {
     });
 
     // Camera setup
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+    camera.position.set(0, 2, 5);
 
     // Renderer setup
     renderer = new THREE.WebGLRenderer({ 
@@ -622,108 +681,43 @@ function init() {
     renderer.setPixelRatio(window.devicePixelRatio);
     document.body.appendChild(renderer.domElement);
 
-    console.log('Three.js initialized');
-
-    // Enhanced lighting setup
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0); // Increased intensity
-    scene.add(ambientLight);
-    
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5); // Increased intensity
-    directionalLight.position.set(10, 10, 5);
-    scene.add(directionalLight);
-
-    // Add hemisphere light for better overall illumination
-    const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x000000, 1);
-    scene.add(hemisphereLight);
-
-    console.log('Lights added to scene');
-
-    // Ground setup
-    const groundSize = 200;
-    const divisions = 100;
-    const gridHelper = new THREE.GridHelper(groundSize, divisions, 0x00ff00, 0x008000);
+    // Ground grid - simplified to match original
+    const gridSize = GAME_PARAMS.GRID_SIZE;
+    const divisions = GAME_PARAMS.GRID_DIVISIONS;
+    const gridHelper = new THREE.GridHelper(gridSize, divisions, VECTOR_GREEN, VECTOR_GREEN);
     gridHelper.position.y = -0.5;
+    // Make grid lines thinner and more faint like the original
+    gridHelper.material.opacity = 0.5;
+    gridHelper.material.transparent = true;
     scene.add(gridHelper);
 
-    console.log('Grid added');
-
-    // Create mountains
-    const mountainDistance = groundSize * 0.7;
-    const numMountains = 8;
-    for (let i = 0; i < numMountains; i++) {
-        const angle = (i / numMountains) * Math.PI * 2;
-        const x = Math.cos(angle) * mountainDistance * (0.8 + Math.random() * 0.4);
-        const z = Math.sin(angle) * mountainDistance * (0.8 + Math.random() * 0.4);
-        const mountainSize = 20 + Math.random() * 30;
-        const mountain = createMountain(mountainSize, new THREE.Vector3(x, 0, z));
-        scene.add(mountain);
-    }
-
-    console.log('Mountains added');
-
-    // Create obstacles
-    const numObstacles = 25;
-    const obstacleSpread = groundSize * 0.4;
-    for (let i = 0; i < numObstacles; i++) {
-        const x = (Math.random() - 0.5) * obstacleSpread;
-        const z = (Math.random() - 0.5) * obstacleSpread;
-        if (Math.abs(x) < 5 && Math.abs(z) < 5) continue;
-        const obstacle = createMapObstacle(new THREE.Vector3(x, 0, z));
-        scene.add(obstacle);
-        obstacles.push(obstacle);
-    }
-
-    console.log('Obstacles added');
+    // Create mountain range
+    createMountainRange();
 
     // Create player tank
     const bodyWidth = 2;
     const bodyHeight = 1;
     const bodyDepth = 3;
-    const tankMaterial = new THREE.MeshStandardMaterial({ 
-        color: 0x00ff00, 
-        wireframe: true, 
-        side: THREE.DoubleSide,
-        emissive: 0x00ff00,
-        emissiveIntensity: 0.5
-    });
 
-    // Create tank body
-    tankBody = createTankBody(bodyWidth, bodyHeight, bodyDepth, tankMaterial);
+    tankBody = createTankBody(bodyWidth, bodyHeight, bodyDepth);
     tankBody.position.y = 0.5;
     scene.add(tankBody);
 
-    console.log('Player tank body added');
-
-    // Create turret
-    tankTurret = createTurret(0.6, 0.8, new THREE.MeshStandardMaterial({ 
-        color: 0x00ff00,
-        wireframe: true,
-        opacity: 0.3,
-        transparent: true,
-        emissive: 0x00ff00,
-        emissiveIntensity: 0.3
-    }));
+    tankTurret = createTurret(0.6, 0.8);
     tankTurret.position.y = bodyHeight;
     tankBody.add(tankTurret);
 
-    // Create cannon
-    tankCannon = createCannon(0.15, 2, new THREE.MeshStandardMaterial({ 
-        color: 0x00ff00,
-        wireframe: true,
-        opacity: 0.3,
-        transparent: true,
-        emissive: 0x00ff00,
-        emissiveIntensity: 0.3
-    }));
+    tankCannon = createCannon(0.15, 2);
     tankCannon.position.y = 0.1;
     tankTurret.add(tankCannon);
 
-    console.log('Tank turret and cannon added');
+    // Create HUD
+    createHUD();
 
-    // Camera setup
-    camera.position.y = bodyHeight + 0.2;
-    camera.position.z = 0.3;
+    // Camera parenting
+    camera.position.set(0, bodyHeight + 0.5, 0.5);
     tankTurret.add(camera);
+    camera.lookAt(new THREE.Vector3(0, bodyHeight + 0.5, -10));
 
     // Create enemy tanks
     const numEnemyTanks = 5;
@@ -736,7 +730,17 @@ function init() {
         enemyTanks.push(enemyTank);
     }
 
-    console.log('Enemy tanks added');
+    // Create obstacles
+    const numObstacles = GAME_PARAMS.NUM_OBSTACLES;
+    const obstacleSpread = gridSize * 0.4;
+    for (let i = 0; i < numObstacles; i++) {
+        const x = (Math.random() - 0.5) * obstacleSpread;
+        const z = (Math.random() - 0.5) * obstacleSpread;
+        if (Math.abs(x) < 5 && Math.abs(z) < 5) continue;  // Keep center area clear
+        const obstacle = createMapObstacle(new THREE.Vector3(x, 0, z));
+        scene.add(obstacle);
+        obstacles.push(obstacle);
+    }
 
     // Event handlers
     handleKeyDown = (event) => {
@@ -755,21 +759,17 @@ function init() {
     document.addEventListener('keyup', handleKeyUp);
     window.addEventListener('resize', onWindowResize, false);
 
-    // Create HUD
-    createHUD();
-
-    console.log('Setup complete, starting animation');
-    // Start animation loop
-    animate();
-
-    // Add camera listener in init function
+    // Initialize sounds
     camera.add(audioListener);
     initSounds();
 
-    // Start engine sound when game starts
+    // Start engine sound
     setTimeout(() => {
         playSound('engineIdle');
     }, 1000);
+
+    // Start animation loop
+    animate();
 }
 
 function animate() {
@@ -802,16 +802,16 @@ function handleMovement() {
 
     // Simplified movement
     if (keyboardState['KeyW']) {
-        tankBody.translateZ(-moveSpeed);
+        tankBody.translateZ(-GAME_PARAMS.MOVE_SPEED);
     }
     if (keyboardState['KeyS']) {
-        tankBody.translateZ(moveSpeed);
+        tankBody.translateZ(GAME_PARAMS.MOVE_SPEED);
     }
     if (keyboardState['KeyA']) {
-        tankBody.rotation.y += rotationSpeed;
+        tankBody.rotation.y += GAME_PARAMS.ROTATION_SPEED;
     }
     if (keyboardState['KeyD']) {
-        tankBody.rotation.y -= rotationSpeed;
+        tankBody.rotation.y -= GAME_PARAMS.ROTATION_SPEED;
     }
 
     // Check collisions and revert if needed
@@ -833,7 +833,7 @@ function updateProjectiles() {
         const projectile = projectiles[i];
         
         // Apply gravity to velocity
-        projectile.userData.velocity.y -= projectileGravity;
+        projectile.userData.velocity.y -= GAME_PARAMS.PROJECTILE_GRAVITY;
         
         // Update position
         projectile.position.add(projectile.userData.velocity);
@@ -841,14 +841,14 @@ function updateProjectiles() {
 
         // Check if projectile hit ground
         if (projectile.position.y < 0) {
-            createExplosion(projectile.position, projectile.userData.isEnemyProjectile ? 0xff0000 : 0x00ff00, 0.5);
+            createExplosion(projectile.position, projectile.userData.isEnemyProjectile ? 0xff0000 : VECTOR_GREEN, 0.5);
             projectilePool.release(projectile);
             projectiles.splice(i, 1);
             continue;
         }
 
         // Check if projectile should be removed due to distance
-        if (projectile.userData.distanceTraveled > projectileMaxDistance) {
+        if (projectile.userData.distanceTraveled > GAME_PARAMS.PROJECTILE_MAX_DISTANCE) {
             projectilePool.release(projectile);
             projectiles.splice(i, 1);
             continue;
@@ -863,7 +863,7 @@ function updateProjectiles() {
                     updateHealthDisplay();
                     playerHitCount++;
                     
-                    if (playerHealth <= 0 || playerHitCount >= playerMaxHits) {
+                    if (playerHealth <= 0 || playerHitCount >= GAME_PARAMS.MAX_HITS) {
                         gameOver();
                     } else {
                         // Temporary invulnerability
@@ -883,7 +883,7 @@ function updateProjectiles() {
                     enemyTank.takeDamage(34);
                     projectilePool.release(projectile);
                     projectiles.splice(i, 1);
-                    createExplosion(projectile.position, 0x00ff00);
+                    createExplosion(projectile.position, VECTOR_GREEN);
                     break;
                 }
             }
@@ -892,48 +892,55 @@ function updateProjectiles() {
 }
 
 function createExplosion(position, color, size = 1) {
-    // Play explosion sound
     playSound('explosion');
-
+    
     const explosion = explosionPool.acquire();
     explosion.visible = true;
     explosion.position.copy(position);
-    explosion.scale.set(size, size, size);
-
-    // Set color for all particles
-    explosion.children.forEach(particle => {
-        particle.material.color.setHex(color);
-        particle.material.emissive.setHex(color);
-        
-        // Random velocity
-        particle.userData.velocity = new THREE.Vector3(
-            (Math.random() - 0.5) * 0.2,
-            Math.random() * 0.2,
-            (Math.random() - 0.5) * 0.2
+    
+    // Create expanding geometric shapes
+    const lines = [];
+    const numLines = 8;
+    
+    for (let i = 0; i < numLines; i++) {
+        const angle = (i / numLines) * Math.PI * 2;
+        const line = new THREE.Vector3(
+            Math.cos(angle) * size,
+            Math.sin(angle) * size,
+            0
         );
+        lines.push(line);
+    }
+    
+    // Update each particle to be a line segment
+    explosion.children.forEach((particle, i) => {
+        const lineGeom = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, 0, 0),
+            lines[i % lines.length]
+        ]);
+        particle.geometry = lineGeom;
     });
-
+    
     // Animate explosion
     const startTime = Date.now();
-    const duration = 1000;
-
+    const duration = 300; // Faster, more arcade-like explosion
+    
     function animateExplosion() {
         const elapsed = Date.now() - startTime;
         if (elapsed > duration) {
             explosionPool.release(explosion);
             return;
         }
-
+        
         const progress = elapsed / duration;
-        explosion.children.forEach(particle => {
-            particle.position.add(particle.userData.velocity);
-            particle.rotation.x += 0.1;
-            particle.rotation.y += 0.1;
+        explosion.children.forEach((particle, i) => {
+            particle.scale.setScalar(1 + progress * 2);
+            particle.rotation.z = progress * Math.PI * 2;
         });
-
+        
         requestAnimationFrame(animateExplosion);
     }
-
+    
     animateExplosion();
 }
 
@@ -977,4 +984,37 @@ function checkTerrainCollision(position, radius) {
     }
 
     return false;
+}
+
+function createMountainRange() {
+    // Remove any existing mountains
+    scene.children.forEach(child => {
+        if (child.userData.isMountain) {
+            scene.remove(child);
+        }
+    });
+    
+    // Create three rings of pyramid mountains
+    const mountainRings = [
+        { distance: GAME_PARAMS.MOUNTAIN_DISTANCE * 0.6, count: 8, size: 15 },
+        { distance: GAME_PARAMS.MOUNTAIN_DISTANCE * 0.8, count: 12, size: 20 },
+        { distance: GAME_PARAMS.MOUNTAIN_DISTANCE, count: 16, size: 25 }
+    ];
+    
+    mountainRings.forEach(ring => {
+        const angleOffset = Math.random() * Math.PI; // Random offset for each ring
+        for (let i = 0; i < ring.count; i++) {
+            const angle = angleOffset + (i / ring.count) * Math.PI * 2;
+            const x = Math.cos(angle) * ring.distance;
+            const z = Math.sin(angle) * ring.distance;
+            
+            const mountain = createBattlezoneMountain(
+                ring.size + (Math.random() - 0.5) * 2,
+                new THREE.Vector3(x, 0, z)
+            );
+            
+            mountain.userData.isMountain = true;
+            scene.add(mountain);
+        }
+    });
 }

@@ -3,10 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>3D Wireframe Tanks</title>
+    <title>Battlezone</title>
     <link rel="stylesheet" href="style.css" />
+    <style>
+      canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        left: 0;
+      }
+    </style>
   </head>
   <body>
+    <div id="radar"></div>
+    <div id="score">SCORE: 0000</div>
+    <div id="health">ARMOR: ████</div>
+    <div id="gameOver">
+      <div>GAME OVER</div>
+      <div style="font-size: 24px; margin-top: 20px">PRESS R TO RESTART</div>
+    </div>
+
     <!-- Three.js library will be imported in script.js -->
     <script type="importmap">
       {
