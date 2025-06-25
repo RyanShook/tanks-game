@@ -4,7 +4,7 @@ A retro-style 3D tank combat game built with Three.js, featuring wireframe graph
 
 ## 🎮 Play Now
 
-**[► PLAY GAME ◄](https://RyanShook.github.io/tanks-game)**
+**[► PLAY GAME ◄](https://ryanshook.org/tanks-game/)**
 
 *Live version hosted on GitHub Pages*
 
@@ -79,7 +79,7 @@ php -S localhost:8000
 ## 🚀 GitHub Pages Deployment
 
 This game is automatically deployed to GitHub Pages from the `main` branch. Any commits to main will update the live version at:
-**https://RyanShook.github.io/tanks-game**
+**https://ryanshook.org/tanks-game/**
 
 ## 💻 Technologies Used
 
