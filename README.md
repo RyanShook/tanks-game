@@ -1,54 +1,110 @@
-# 3D Wireframe Tanks
+# 3D Wireframe Tanks vs Spaceships
 
-A retro-style 3D tank combat game built with Three.js, featuring wireframe graphics inspired by classic arcade games.
+A retro-style 3D tank combat game built with Three.js, featuring wireframe graphics inspired by classic arcade games like Battlezone. Fight against enemy tanks and alien spaceships in progressive waves!
 
-## Play Now
+## 🎮 Play Now
 
-You can play the game directly in your browser: [Play 3D Wireframe Tanks](https://RyanShook.github.io/tanks-game) (URL will be added after deployment)
+**[► PLAY GAME ◄](https://RyanShook.github.io/tanks-game)**
 
-## Features
+*Live version hosted on GitHub Pages*
 
-- First-person tank combat
-- Wireframe 3D graphics
-- Enemy AI tanks that hunt and engage the player
-- Physics-based projectiles with gravity
-- Sound effects and visual feedback
-- Dramatic explosion effects
-- Health/armor system
+## ✨ Features
 
-## Controls
+### Combat System
+- **First-person tank combat** with realistic physics
+- **Wave-based gameplay** with progressive difficulty
+- **Multiple enemy types**: Ground tanks, flying saucers, and space fighters
+- **Physics-based projectiles** with gravity and ballistics
+- **Power-ups**: Speed boost, rapid fire, and shield
 
-- `W` - Move forward
-- `S` - Move backward
-- `A` - Rotate left
-- `D` - Rotate right
-- `SPACE` - Fire cannon
-- `R` - Restart game (when game over)
+### Visual & Audio
+- **Retro wireframe 3D graphics** in classic green vector style
+- **Enhanced explosion effects** with particle systems
+- **Dynamic radar system** showing enemies as different symbols
+- **Sound effects** for weapons, explosions, and engine
+- **Screen flash effects** for wave completion
 
-## Setup
+### Enemy AI
+- **Ground Tanks**: Patrol, seek, and attack with tactical positioning
+- **Flying Saucers**: Hover and weave with unpredictable movement
+- **Space Fighters**: Aggressive dive attacks and circling patterns
+- **Smart targeting** and collision avoidance
+
+## 🎯 Controls
+
+- **`W`** - Move forward
+- **`S`** - Move backward  
+- **`A`** - Rotate left
+- **`D`** - Rotate right
+- **`SPACE`** - Fire cannon
+- **`R`** - Restart game (when game over)
+
+## 🏆 Scoring
+
+- **Tanks**: 1,000 points
+- **Flying Saucers**: 1,500 points
+- **Space Fighters**: 2,000 points
+- **Wave Bonus**: 500 × wave number
+- **Bonus Life**: Every 15,000 points
+
+## 🌊 Wave Progression
+
+- **Wave 1**: Ground tanks only
+- **Wave 2+**: Tanks + flying saucers
+- **Wave 4+**: Tanks + saucers + space fighters
+- Each wave increases enemy count and aggression
+
+## 🛠️ Development Setup
 
 1. Clone the repository:
 ```bash
 git clone https://github.com/RyanShook/tanks-game.git
+cd tanks-game
 ```
 
-2. Serve the files using a local web server. For example, using Python:
+2. Serve the files using a local web server:
 ```bash
 # Python 3
-python -m http.server
+python -m http.server 8000
 
-# Python 2
-python -m SimpleHTTPServer
+# Node.js (if you have npx)
+npx serve .
+
+# PHP
+php -S localhost:8000
 ```
 
 3. Open your browser and navigate to `http://localhost:8000`
 
-## Technologies Used
+## 🚀 GitHub Pages Deployment
 
-- Three.js for 3D graphics
-- Native JavaScript
-- HTML5/CSS3
+This game is automatically deployed to GitHub Pages from the `main` branch. Any commits to main will update the live version at:
+**https://RyanShook.github.io/tanks-game**
 
-## License
+## 💻 Technologies Used
+
+- **Three.js** - 3D graphics and WebGL rendering
+- **Vanilla JavaScript** - Game logic and physics
+- **HTML5 Canvas** - HUD and radar display
+- **CSS3** - UI styling and effects
+- **Web Audio API** - Sound effects
+
+## 📱 Browser Compatibility
+
+- Chrome/Edge (Recommended)
+- Firefox
+- Safari
+- Mobile browsers (with touch controls coming soon!)
+
+## 🤝 Contributing
+
+Feel free to fork this project and submit pull requests! Some ideas for contributions:
+- Mobile touch controls
+- New enemy types
+- Additional power-ups
+- Multiplayer support
+- Better graphics
+
+## 📄 License
 
 MIT License - feel free to use this code for your own projects! 

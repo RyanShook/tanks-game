@@ -21,35 +21,53 @@ canvas {
 
 #radar {
     position: fixed;
-    top: 20px;
+    top: 10px;
     left: 50%;
     transform: translateX(-50%);
-    width: 200px;
-    height: 100px;
-    border: 2px solid #00ff00;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
+    width: 320px;
+    height: 32px;
+    z-index: 2000;
+    pointer-events: none;
+    background: none;
+    border: none;
+}
+
+#radar canvas {
+    width: 320px;
+    height: 32px;
+    background: none;
+    border: none;
+    display: block;
+    z-index: 2001;
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
 }
 
 #score {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: 10px;
+    left: 20px;
     color: #00ff00;
     font-family: monospace;
-    font-size: 24px;
-    padding: 10px;
+    font-size: 22px;
+    padding: 0;
+    background: none;
+    border: none;
     z-index: 1000;
 }
 
 #health {
     position: fixed;
-    top: 20px;
-    left: 20px;
+    top: 10px;
+    right: 20px;
     color: #00ff00;
     font-family: monospace;
-    font-size: 24px;
-    padding: 10px;
+    font-size: 22px;
+    padding: 0;
+    background: none;
+    border: none;
     z-index: 1000;
 }
 
