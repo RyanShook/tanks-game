@@ -57,11 +57,11 @@ export const GAME_PARAMS = {
         },
         SHIELD: {
             duration: 5000,
-            effect: () => {
-                playerInvulnerable = true;
+            effect: (state) => {
+                state.setPlayerInvulnerable(true);
             },
-            reset: () => {
-                playerInvulnerable = false;
+            reset: (state) => {
+                state.setPlayerInvulnerable(false);
             }
         }
     },

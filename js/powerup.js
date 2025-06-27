@@ -44,7 +44,7 @@ class PowerUp {
         this.scene.remove(this.mesh);
         
         const powerUp = GAME_PARAMS.POWERUP_TYPES[this.type];
-        powerUp.effect();
+        powerUp.effect(state);
         
         state.activePowerUps.add(this.type);
         updatePowerUpDisplay();
@@ -52,7 +52,7 @@ class PowerUp {
         createExplosion(this.mesh.position, VECTOR_GREEN, 1);
         
         setTimeout(() => {
-            powerUp.reset();
+            powerUp.reset(state);
             state.activePowerUps.delete(this.type);
             updatePowerUpDisplay();
         }, powerUp.duration);
