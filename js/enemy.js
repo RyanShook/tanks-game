@@ -4,6 +4,7 @@ import * as state from './state.js';
 import { createExplosion, createEnhancedExplosion } from './effects.js';
 import { checkCollision } from './utils.js';
 import { projectilePool } from './projectile.js';
+import { createTankBody, createTurret, createCannon } from './player.js';
 
 class EnemyTank {
     constructor(scene, position) {
@@ -287,65 +288,6 @@ export function spawnWave(waveNumber) {
     }
 }
 
-function createTankBody(width, height, depth) {
-    const shape = [
-        [-width/2, 0, -depth/2], [width/2, 0, -depth/2], [width/2, 0, depth/2], [-width/2, 0, depth/2],
-        [-width/3, height, -depth/3], [width/3, height, -depth/3], [width/3, height, depth/3], [-width/3, height, depth/3],
-    ];
-    const indices = [
-        [0,1],[1,2],[2,3],[3,0],
-        [4,5],[5,6],[6,7],[7,4],
-        [0,4],[1,5],[2,6],[3,7],
-        [0,1],[1,5],[5,4],[4,0],
-        [3,2],[2,6],[6,7],[7,3],
-    ];
-    const points = [];
-    indices.forEach(([a,b]) => {
-        points.push(new THREE.Vector3(...shape[a]), new THREE.Vector3(...shape[b]));
-    });
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    return new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: VECTOR_GREEN }));
-}
-
-function createTurret(radius, height) {
-    const points = [];
-    const segments = 6;
-    for (let i = 0; i < segments; i++) {
-        const angle1 = (i / segments) * Math.PI * 2;
-        const angle2 = ((i+1) / segments) * Math.PI * 2;
-        points.push(
-            new THREE.Vector3(Math.cos(angle1)*radius, 0, Math.sin(angle1)*radius),
-            new THREE.Vector3(Math.cos(angle2)*radius, 0, Math.sin(angle2)*radius)
-        );
-        points.push(
-            new THREE.Vector3(Math.cos(angle1)*radius, height, Math.sin(angle1)*radius),
-            new THREE.Vector3(Math.cos(angle2)*radius, height, Math.sin(angle2)*radius)
-        );
-        points.push(
-            new THREE.Vector3(Math.cos(angle1)*radius, 0, Math.sin(angle1)*radius),
-            new THREE.Vector3(Math.cos(angle1)*radius, height, Math.sin(angle1)*radius)
-        );
-    }
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    return new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: VECTOR_GREEN }));
-}
-
-function createCannon(radius, length) {
-    const w = radius, l = length, h = radius * 0.6;
-    const shape = [
-        [0, -h, -w], [l, -h, -w], [l, h, -w], [0, h, -w],
-        [0, -h, w],  [l, -h, w],  [l, h, w],  [0, h, w],
-    ];
-    const indices = [[0,1],[1,2],[2,3],[3,0],[4,5],[5,6],[6,7],[7,4],[0,4],[1,5],[2,6],[3,7]];
-    const points = [];
-    indices.forEach(([a,b]) => {
-        points.push(new THREE.Vector3(...shape[a]), new THREE.Vector3(...shape[b]));
-    });
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const cannon = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: VECTOR_GREEN }));
-    cannon.rotation.z = Math.PI / 2;
-    return cannon;
-}
 
 function createSaucerMesh() {
     const group = new THREE.Group();
@@ -434,38 +376,3 @@ function checkTerrainCollision(position, radius) {
     return false;
 }
 
-function createEnhancedExplosion(position, color, size = 1) {
-    const explosion = state.explosionPool.acquire();
-    explosion.visible = true;
-    explosion.position.copy(position);
-    const numParticles = 12;
-    for (let i = 0; i < numParticles; i++) {
-        const angle = (i / numParticles) * Math.PI * 2;
-        const particle = explosion.children[i % explosion.children.length];
-        const lineGeom = new THREE.BufferGeometry().setFromPoints([
-            new THREE.Vector3(0, 0, 0),
-            new THREE.Vector3(Math.cos(angle) * size * 2, Math.sin(angle * 0.5) * size, Math.sin(angle) * size * 2)
-        ]);
-        particle.geometry = lineGeom;
-    }
-    const startTime = Date.now();
-    const duration = 400;
-    function animateExplosion() {
-        const elapsed = Date.now() - startTime;
-        if (elapsed > duration) {
-            state.explosionPool.release(explosion);
-            return;
-        }
-        const progress = elapsed / duration;
-        const scale = 1 + progress * 3;
-        const rotation = progress * Math.PI * 4;
-        explosion.children.forEach((particle, i) => {
-            particle.scale.setScalar(scale);
-            particle.rotation.z = rotation + (i * 0.5);
-            particle.material.opacity = 1 - progress;
-        });
-        explosion.rotation.y = rotation * 0.5;
-        requestAnimationFrame(animateExplosion);
-    }
-    animateExplosion();
-}

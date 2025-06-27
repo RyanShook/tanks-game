@@ -4,7 +4,7 @@ import * as state from './state.js';
 import { checkCollision } from './utils.js';
 import { fireProjectile } from './projectile.js';
 
-function createTankBody(width, height, depth) {
+export function createTankBody(width, height, depth) {
     const shape = [
         [-width/2, 0, -depth/2], [width/2, 0, -depth/2], [width/2, 0, depth/2], [-width/2, 0, depth/2],
         [-width/3, height, -depth/3], [width/3, height, -depth/3], [width/3, height, depth/3], [-width/3, height, depth/3],
@@ -24,7 +24,7 @@ function createTankBody(width, height, depth) {
     return new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: VECTOR_GREEN }));
 }
 
-function createTurret(radius, height) {
+export function createTurret(radius, height) {
     const points = [];
     const segments = 6;
     for (let i = 0; i < segments; i++) {
@@ -47,7 +47,7 @@ function createTurret(radius, height) {
     return new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: VECTOR_GREEN }));
 }
 
-function createCannon(radius, length) {
+export function createCannon(radius, length) {
     const w = radius, l = length, h = radius * 0.6;
     const shape = [
         [0, -h, -w], [l, -h, -w], [l, h, -w], [0, h, -w],
