@@ -359,7 +359,7 @@ function createFighterMesh() {
     return group;
 }
 
-function checkTerrainCollision(position, radius) {
+export function checkTerrainCollision(position, radius) {
     if (!position || typeof position.x === 'undefined') {
         console.warn('Invalid position passed to checkTerrainCollision:', position);
         return false;

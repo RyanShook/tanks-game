@@ -71,7 +71,7 @@ export function createEnhancedExplosion(position, color, size = 1) {
     const startTime = Date.now();
     const duration = 400;
     
-    function animateExplosion() {
+    function animateEnhancedExplosion() {
         const elapsed = Date.now() - startTime;
         if (elapsed > duration) {
             explosionPool.release(explosion);
@@ -90,8 +90,8 @@ export function createEnhancedExplosion(position, color, size = 1) {
         
         explosion.rotation.y = rotation * 0.5;
         
-        requestAnimationFrame(animateExplosion);
+        requestAnimationFrame(animateEnhancedExplosion);
     }
     
-    animateExplosion();
+    animateEnhancedExplosion();
 }

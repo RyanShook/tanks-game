@@ -3,6 +3,7 @@ import { GAME_PARAMS, VECTOR_GREEN } from './constants.js';
 import * as state from './state.js';
 import { checkCollision } from './utils.js';
 import { fireProjectile } from './projectile.js';
+import { checkTerrainCollision } from './enemy.js';
 
 export function createTankBody(width, height, depth) {
     const shape = [
@@ -112,23 +113,3 @@ export function handleMovement() {
     state.tankTurret.rotation.y = 0;
 }
 
-function checkTerrainCollision(position, radius) {
-    if (!position || typeof position.x === 'undefined') {
-        console.warn('Invalid position passed to checkTerrainCollision:', position);
-        return false;
-    }
-
-    const tempObj = { position: position };
-
-    for (const obstacle of state.obstacles) {
-        if (!obstacle) continue;
-        if (checkCollision(tempObj, obstacle, radius + 1.5)) return true;
-    }
-
-    for (const enemy of state.enemyTanks) {
-        if (!enemy || !enemy.body || enemy.isDestroyed) continue;
-        if (checkCollision(tempObj, enemy.body, radius + 2)) return true;
-    }
-
-    return false;
-}
