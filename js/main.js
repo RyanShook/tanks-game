@@ -1,3 +1,6 @@
+import * as THREE from 'three';
+import { GAME_PARAMS } from './constants.js';
+import * as state from './state.js';
 import { initProjectiles, updateProjectiles, fireProjectile } from './projectile.js';
 import { initEffects, createExplosion } from './effects.js';
 import { updatePowerUps } from './powerup.js';
