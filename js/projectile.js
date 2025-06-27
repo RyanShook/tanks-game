@@ -3,10 +3,11 @@ import { GAME_PARAMS, VECTOR_GREEN } from './constants.js';
 import * as state from './state.js';
 import { playSound } from './sound.js';
 import { ObjectPool, checkCollision } from './utils.js';
+import { createExplosion } from './effects.js';
 
-export let projectilePool, explosionPool;
+export let projectilePool;
 
-export function initProjectiles() {
+export function initProjectiles(scene) {
     projectilePool = new ObjectPool(() => {
         const projectileGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.4, 8);
         const projectile = new THREE.LineSegments(
@@ -14,28 +15,13 @@ export function initProjectiles() {
             new THREE.LineBasicMaterial({ color: VECTOR_GREEN })
         );
         projectile.visible = false;
-        state.scene.add(projectile);
+        scene.add(projectile);
         return projectile;
-    });
-
-    explosionPool = new ObjectPool(() => {
-        const particles = new THREE.Group();
-        for (let i = 0; i < 8; i++) {
-            const geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
-            const particle = new THREE.LineSegments(
-                new THREE.EdgesGeometry(geometry),
-                new THREE.LineBasicMaterial({ color: VECTOR_GREEN })
-            );
-            particles.add(particle);
-        }
-        particles.visible = false;
-        state.scene.add(particles);
-        return particles;
     });
 }
 
 export function fireProjectile() {
-    if (state.isGameOver) return;
+    if (state.isGameOver || !projectilePool) return;
 
     playSound('shoot');
 
@@ -56,18 +42,13 @@ export function fireProjectile() {
 
     state.projectiles.push(projectile);
 
-    const muzzleFlash = explosionPool.acquire();
-    muzzleFlash.visible = true;
-    muzzleFlash.position.copy(cannonWorldPos);
-    muzzleFlash.scale.set(0.3, 0.3, 0.3);
+    createExplosion(cannonWorldPos, VECTOR_GREEN, 0.3);
 
     state.tankCannon.rotation.x = -0.1;
     setTimeout(() => { state.tankCannon.rotation.x = 0; }, 100);
-
-    setTimeout(() => { explosionPool.release(muzzleFlash); }, 100);
 }
 
-export function updateProjectiles() {
+export function updateProjectiles(gameOver) {
     for (let i = state.projectiles.length - 1; i >= 0; i--) {
         const projectile = state.projectiles[i];
         
@@ -96,7 +77,7 @@ export function updateProjectiles() {
                     state.setPlayerHitCount(state.playerHitCount + 1);
                     
                     if (state.playerHealth <= 0 || state.playerHitCount >= GAME_PARAMS.MAX_HITS) {
-                        // gameOver();
+                        gameOver();
                     } else {
                         state.setPlayerInvulnerable(true);
                         setTimeout(() => { state.setPlayerInvulnerable(false); }, 1000);
@@ -130,47 +111,4 @@ export function updateProjectiles() {
             }
         }
     }
-}
-
-export function createExplosion(position, color, size = 1) {
-    playSound('explosion');
-    
-    const explosion = explosionPool.acquire();
-    explosion.visible = true;
-    explosion.position.copy(position);
-    
-    const lines = [];
-    const numLines = 8;
-    
-    for (let i = 0; i < numLines; i++) {
-        const angle = (i / numLines) * Math.PI * 2;
-        const line = new THREE.Vector3(Math.cos(angle) * size, Math.sin(angle) * size, 0);
-        lines.push(line);
-    }
-    
-    explosion.children.forEach((particle, i) => {
-        const lineGeom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), lines[i % lines.length]]);
-        particle.geometry = lineGeom;
-    });
-    
-    const startTime = Date.now();
-    const duration = 300;
-    
-    function animateExplosion() {
-        const elapsed = Date.now() - startTime;
-        if (elapsed > duration) {
-            explosionPool.release(explosion);
-            return;
-        }
-        
-        const progress = elapsed / duration;
-        explosion.children.forEach((particle, i) => {
-            particle.scale.setScalar(1 + progress * 2);
-            particle.rotation.z = progress * Math.PI * 2;
-        });
-        
-        requestAnimationFrame(animateExplosion);
-    }
-    
-    animateExplosion();
 }

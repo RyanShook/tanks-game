@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GAME_PARAMS, VECTOR_GREEN } from './constants.js';
 import * as state from './state.js';
-import { projectilePool, createExplosion } from './projectile.js';
+import { createExplosion, createEnhancedExplosion } from './effects.js';
 import { checkCollision } from './utils.js';
 
 class EnemyTank {
