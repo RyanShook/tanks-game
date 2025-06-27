@@ -17,6 +17,12 @@ canvas {
     left: 0;
     width: 100vw;
     height: 100vh;
+    z-index: 1;
+}
+
+/* Make sure the main game canvas is behind HUD elements but visible */
+canvas:not(#radar canvas) {
+    z-index: 1;
 }
 
 #radar {

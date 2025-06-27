@@ -31,6 +31,7 @@ function init() {
     state.setRenderer(new THREE.WebGLRenderer({ antialias: true, alpha: true }));
     state.renderer.setSize(window.innerWidth, window.innerHeight);
     state.renderer.setPixelRatio(window.devicePixelRatio);
+    // Add canvas FIRST to ensure it's behind HUD elements
     document.body.appendChild(state.renderer.domElement);
 
     const grid = createHorizontalGrid(GAME_PARAMS.GRID_SIZE, GAME_PARAMS.GRID_DIVISIONS, 0x00ff00);
@@ -38,9 +39,10 @@ function init() {
     state.scene.add(grid);
 
     createMountainRange();
-    createPlayer();
-    createHUD();
     createObstacles();
+    createPlayer();
+    // Create HUD AFTER canvas so it appears on top
+    createHUD();
 
     spawnWave(state.currentWave);
 
@@ -48,8 +50,12 @@ function init() {
     console.log('Game initialized:');
     console.log('- Scene children count:', state.scene.children.length);
     console.log('- Camera position:', state.camera.position);
+    console.log('- Camera world position:', state.camera.getWorldPosition(new THREE.Vector3()));
     console.log('- Tank body visible:', state.tankBody?.visible);
+    console.log('- Tank body position:', state.tankBody?.position);
     console.log('- Renderer size:', state.renderer.getSize(new THREE.Vector2()));
+    console.log('- Canvas element:', state.renderer.domElement);
+    console.log('- Canvas parent:', state.renderer.domElement.parentElement);
 
     state.handleKeyDown = (event) => {
         state.keyboardState[event.code] = true;
@@ -94,9 +100,20 @@ function animate() {
         }
         
         updateHealthDisplay();
-        state.renderer.render(state.scene, state.camera);
+        
+        // Force render - this should show something!
+        if (state.renderer && state.scene && state.camera) {
+            state.renderer.render(state.scene, state.camera);
+        } else {
+            console.error('Missing renderer components:', {
+                renderer: !!state.renderer,
+                scene: !!state.scene,
+                camera: !!state.camera
+            });
+        }
     } catch (error) {
         console.error('Animation error:', error);
+        console.error('Error stack:', error.stack);
     }
 }
 
