@@ -18,6 +18,9 @@ export function initProjectiles(scene) {
         scene.add(projectile);
         return projectile;
     });
+    
+    // Set the projectile pool in state for access by other modules
+    state.setProjectilePool(projectilePool);
 }
 
 export function fireProjectile() {

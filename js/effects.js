@@ -22,7 +22,7 @@ export function initEffects(scene) {
     });
     
     // Set the explosion pool in state for access by other modules
-    state.explosionPool = explosionPool;
+    state.setExplosionPool(explosionPool);
 }
 
 export function createExplosion(position, color, size = 1) {

@@ -39,3 +39,5 @@ export function setHealthLabel(h) { healthLabel = h; }
 export function setGameOverScreen(g) { gameOverScreen = g; }
 export function setPlayerHitCount(c) { playerHitCount = c; }
 export function setLastPowerUpSpawn(t) { lastPowerUpSpawn = t; }
+export function setExplosionPool(e) { explosionPool = e; }
+export function setProjectilePool(p) { projectilePool = p; }
