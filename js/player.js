@@ -85,9 +85,9 @@ export function createPlayer() {
     tankTurret.add(state.camera);
     state.camera.lookAt(new THREE.Vector3(0, bodyHeight + 0.5, -10));
 
-    tankBody.visible = false;
-    tankTurret.visible = false;
-    tankCannon.visible = false;
+    tankBody.visible = true;
+    tankTurret.visible = true;
+    tankCannon.visible = true;
 }
 
 export function handleMovement() {

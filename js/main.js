@@ -7,6 +7,8 @@ import { updatePowerUps } from './powerup.js';
 import { createHUD, updateHealthDisplay, updateRadar, updateWaveDisplay, showWaveCompletionMessage } from './hud.js';
 import { initSounds, playSound } from './sound.js';
 import { createMountainRange, createHorizontalGrid, createObstacles } from './world.js';
+import { createPlayer, handleMovement } from './player.js';
+import { spawnWave } from './enemy.js';
 
 function init() {
     state.setScene(new THREE.Scene());
@@ -160,4 +162,20 @@ function resetGame() {
     document.addEventListener('keyup', state.handleKeyUp);
 
     updateHealthDisplay();
+}
+
+function checkWaveCompletion() {
+    if (state.enemiesRemaining <= 0 && !state.isGameOver) {
+        state.setCurrentWave(state.currentWave + 1);
+        
+        // Show wave completion message
+        if (typeof showWaveCompletionMessage === 'function') {
+            showWaveCompletionMessage(state.currentWave - 1);
+        }
+        
+        // Spawn next wave after a short delay
+        setTimeout(() => {
+            spawnWave(state.currentWave);
+        }, 2000);
+    }
 }

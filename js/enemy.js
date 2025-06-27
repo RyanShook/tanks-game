@@ -3,6 +3,7 @@ import { GAME_PARAMS, VECTOR_GREEN } from './constants.js';
 import * as state from './state.js';
 import { createExplosion, createEnhancedExplosion } from './effects.js';
 import { checkCollision } from './utils.js';
+import { projectilePool } from './projectile.js';
 
 class EnemyTank {
     constructor(scene, position) {
