@@ -86,3 +86,8 @@ canvas {
     display: none;
     z-index: 1000;
 }
+
+.restart-text {
+    font-size: 24px;
+    margin-top: 20px;
+}
