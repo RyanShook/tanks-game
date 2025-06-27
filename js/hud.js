@@ -2,25 +2,17 @@ import * as state from './state.js';
 import { GAME_PARAMS } from './constants.js';
 
 export function createHUD() {
-    const radar = document.createElement('div');
-    radar.id = 'radar';
-    const radarCanvas = document.createElement('canvas');
-    radarCanvas.width = 320;
-    radarCanvas.height = 32;
-    radar.appendChild(radarCanvas);
-    document.body.appendChild(radar);
-    state.setRadarContext(radarCanvas.getContext('2d'));
+    // Use existing HTML elements instead of creating new ones
+    const radar = document.getElementById('radar');
+    if (radar) {
+        const radarCanvas = document.createElement('canvas');
+        radarCanvas.width = 320;
+        radarCanvas.height = 32;
+        radar.appendChild(radarCanvas);
+        state.setRadarContext(radarCanvas.getContext('2d'));
+    }
 
-    const scoreDiv = document.createElement('div');
-    scoreDiv.id = 'score';
-    scoreDiv.innerHTML = 'SCORE: 0000';
-    document.body.appendChild(scoreDiv);
-
-    const healthDiv = document.createElement('div');
-    healthDiv.id = 'health';
-    healthDiv.innerHTML = 'ARMOR: ████';
-    document.body.appendChild(healthDiv);
-
+    // Create power-up display div (not in HTML)
     const powerUpDiv = document.createElement('div');
     powerUpDiv.id = 'powerUps';
     powerUpDiv.style.position = 'fixed';
@@ -33,14 +25,11 @@ export function createHUD() {
     powerUpDiv.style.zIndex = '1000';
     document.body.appendChild(powerUpDiv);
 
-    const gameOverDiv = document.createElement('div');
-    gameOverDiv.id = 'gameOver';
-    gameOverDiv.innerHTML = `
-        <div>GAME OVER</div>
-        <div class="restart-text">PRESS R TO RESTART</div>
-    `;
-    document.body.appendChild(gameOverDiv);
-    state.setGameOverScreen(gameOverDiv);
+    // Set reference to existing game over screen
+    const gameOverDiv = document.getElementById('gameOver');
+    if (gameOverDiv) {
+        state.setGameOverScreen(gameOverDiv);
+    }
 }
 
 export function updateHealthDisplay() {

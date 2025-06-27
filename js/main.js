@@ -12,7 +12,11 @@ import { spawnWave } from './enemy.js';
 
 function init() {
     state.setScene(new THREE.Scene());
-    state.scene.background = new THREE.Color(0x000000);
+    state.scene.background = new THREE.Color(0x001100); // Very dark green instead of pure black
+
+    // Add basic lighting to help with visibility
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
+    state.scene.add(ambientLight);
 
     // Initialize game state
     state.setPlayerHealth(GAME_PARAMS.MAX_HEALTH);
@@ -22,7 +26,7 @@ function init() {
     initEffects(state.scene);
 
     state.setCamera(new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000));
-    state.camera.position.set(0, 2, 5);
+    // Don't set camera position here - it will be set when player is created
 
     state.setRenderer(new THREE.WebGLRenderer({ antialias: true, alpha: true }));
     state.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -39,6 +43,13 @@ function init() {
     createObstacles();
 
     spawnWave(state.currentWave);
+
+    // Debug logging
+    console.log('Game initialized:');
+    console.log('- Scene children count:', state.scene.children.length);
+    console.log('- Camera position:', state.camera.position);
+    console.log('- Tank body visible:', state.tankBody?.visible);
+    console.log('- Renderer size:', state.renderer.getSize(new THREE.Vector2()));
 
     state.handleKeyDown = (event) => {
         state.keyboardState[event.code] = true;

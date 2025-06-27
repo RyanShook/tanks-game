@@ -81,9 +81,10 @@ export function createPlayer() {
     tankTurret.add(tankCannon);
     state.setTankCannon(tankCannon);
 
-    state.camera.position.set(0, bodyHeight + 0.5, 0.5);
+    // Attach camera to turret first, then set relative position
     tankTurret.add(state.camera);
-    state.camera.lookAt(new THREE.Vector3(0, bodyHeight + 0.5, -10));
+    state.camera.position.set(0, 0.5, 4); // Behind and above turret
+    state.camera.lookAt(0, 0, -10); // Look forward
 
     tankBody.visible = true;
     tankTurret.visible = true;
