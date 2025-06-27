@@ -61,6 +61,12 @@ function init() {
     animate();
 }
 
+function onWindowResize() {
+    state.camera.aspect = window.innerWidth / window.innerHeight;
+    state.camera.updateProjectionMatrix();
+    state.renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
 function animate() {
     requestAnimationFrame(animate);
     
@@ -174,7 +180,9 @@ function checkWaveCompletion() {
         
         // Show wave completion message
         if (typeof showWaveCompletionMessage === 'function') {
-            showWaveCompletionMessage(state.currentWave - 1);
+            const waveBonus = GAME_PARAMS.WAVE_BONUS;
+            state.score += waveBonus;
+            showWaveCompletionMessage(waveBonus);
         }
         
         // Spawn next wave after a short delay

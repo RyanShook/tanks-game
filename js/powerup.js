@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GAME_PARAMS, VECTOR_GREEN } from './constants.js';
 import * as state from './state.js';
-import { createExplosion } from './projectile.js';
+import { createExplosion } from './effects.js';
 import { checkCollision } from './utils.js';
 import { updatePowerUpDisplay } from './hud.js';
 
