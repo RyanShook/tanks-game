@@ -14,6 +14,10 @@ function init() {
     state.setScene(new THREE.Scene());
     state.scene.background = new THREE.Color(0x000000);
 
+    // Initialize game state
+    state.setPlayerHealth(GAME_PARAMS.MAX_HEALTH);
+    state.setGameOverScreen(document.getElementById('gameOver'));
+
     initProjectiles(state.scene);
     initEffects(state.scene);
 
@@ -179,3 +183,6 @@ function checkWaveCompletion() {
         }, 2000);
     }
 }
+
+// Initialize the game
+init();

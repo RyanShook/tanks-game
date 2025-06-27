@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { playSound } from './sound.js';
 import { ObjectPool } from './utils.js';
+import * as state from './state.js';
 
 let explosionPool;
 
@@ -19,6 +20,9 @@ export function initEffects(scene) {
         scene.add(particles);
         return particles;
     });
+    
+    // Set the explosion pool in state for access by other modules
+    state.explosionPool = explosionPool;
 }
 
 export function createExplosion(position, color, size = 1) {
