@@ -57,16 +57,16 @@ function init() {
     console.log('- Canvas element:', state.renderer.domElement);
     console.log('- Canvas parent:', state.renderer.domElement.parentElement);
 
-    state.handleKeyDown = (event) => {
+    state.setHandleKeyDown((event) => {
         state.keyboardState[event.code] = true;
         if (event.code === 'Space') {
             fireProjectile();
         }
-    };
+    });
 
-    state.handleKeyUp = (event) => {
+    state.setHandleKeyUp((event) => {
         state.keyboardState[event.code] = false;
-    };
+    });
 
     document.addEventListener('keydown', state.handleKeyDown);
     document.addEventListener('keyup', state.handleKeyUp);
@@ -185,7 +185,7 @@ function resetGame() {
     state.setLastPowerUpSpawn(0);
 
     state.setCurrentWave(1);
-    state.score = 0;
+    state.setScore(0);
     state.setEnemiesRemaining(0);
 
     GAME_PARAMS.MOVE_SPEED = 0.1;

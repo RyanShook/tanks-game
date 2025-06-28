@@ -138,6 +138,18 @@ files.forEach(file => {
         if (line.includes('state.projectilePool =')) {
             console.log(`❌ DIRECT ASSIGNMENT: ${file}:${index + 1} - use setter instead`);
         }
+        // Check for any direct state property assignments
+        const directAssignment = line.match(/state\.([a-zA-Z_$][a-zA-Z0-9_$]*)\s*[=]/);
+        if (directAssignment && !line.includes('state.keyboardState')) {
+            const prop = directAssignment[1];
+            console.log(`❌ DIRECT ASSIGNMENT: ${file}:${index + 1} - state.${prop} = ... (use setter instead)`);
+        }
+        // Check for increment/decrement operations
+        const incDecAssignment = line.match(/state\.([a-zA-Z_$][a-zA-Z0-9_$]*)\s*[+]{2}|state\.([a-zA-Z_$][a-zA-Z0-9_$]*)\s*[-]{2}/);
+        if (incDecAssignment) {
+            const prop = incDecAssignment[1] || incDecAssignment[2];
+            console.log(`❌ INC/DEC ASSIGNMENT: ${file}:${index + 1} - state.${prop}++ or state.${prop}-- (use setter instead)`);
+        }
     });
 });
 

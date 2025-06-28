@@ -68,9 +68,9 @@ class EnemyTank {
         if (this.health <= 0 && !this.isDestroyed) {
             this.destroy();
             state.score += GAME_PARAMS.TANK_SCORE;
-            state.enemiesRemaining--;
+            state.setEnemiesRemaining(state.enemiesRemaining - 1);
             if (Math.floor(state.score / GAME_PARAMS.BONUS_LIFE_SCORE) > Math.floor((state.score - GAME_PARAMS.TANK_SCORE) / GAME_PARAMS.BONUS_LIFE_SCORE)) {
-                state.playerHitCount = Math.max(0, state.playerHitCount - 1);
+                state.setPlayerHitCount(Math.max(0, state.playerHitCount - 1));
             }
         }
     }
@@ -141,7 +141,7 @@ class EnemySaucer {
         if (this.health <= 0 && !this.isDestroyed) {
             this.destroy();
             state.score += GAME_PARAMS.SAUCER_SCORE;
-            state.enemiesRemaining--;
+            state.setEnemiesRemaining(state.enemiesRemaining - 1);
         }
     }
 
@@ -219,7 +219,7 @@ class EnemyFighter {
         if (this.health <= 0 && !this.isDestroyed) {
             this.destroy();
             state.score += GAME_PARAMS.FIGHTER_SCORE;
-            state.enemiesRemaining--;
+            state.setEnemiesRemaining(state.enemiesRemaining - 1);
         }
     }
 
@@ -245,7 +245,7 @@ class EnemyFighter {
 }
 
 export function spawnWave(waveNumber) {
-    state.enemiesRemaining = 0;
+    state.setEnemiesRemaining(0);
     state.enemyTanks.forEach(tank => state.scene.remove(tank.body));
     state.enemySpaceships.forEach(ship => state.scene.remove(ship.mesh));
     state.enemyTanks.length = 0;
@@ -259,7 +259,7 @@ export function spawnWave(waveNumber) {
         const z = Math.sin(angle) * tankRadius;
         const enemyTank = new EnemyTank(state.scene, new THREE.Vector3(x, 0, z));
         state.enemyTanks.push(enemyTank);
-        state.enemiesRemaining++;
+        state.setEnemiesRemaining(state.enemiesRemaining + 1);
     }
 
     if (waveNumber >= 2) {
@@ -272,7 +272,7 @@ export function spawnWave(waveNumber) {
             const z = Math.sin(angle) * distance;
             const saucer = new EnemySaucer(state.scene, new THREE.Vector3(x, 0, z));
             state.enemySpaceships.push(saucer);
-            state.enemiesRemaining++;
+            state.setEnemiesRemaining(state.enemiesRemaining + 1);
         }
         if (waveNumber >= 4) {
             for (let i = 0; i < numFighters; i++) {
@@ -282,7 +282,7 @@ export function spawnWave(waveNumber) {
                 const z = Math.sin(angle) * distance;
                 const fighter = new EnemyFighter(state.scene, new THREE.Vector3(x, 0, z));
                 state.enemySpaceships.push(fighter);
-                state.enemiesRemaining++;
+                state.setEnemiesRemaining(state.enemiesRemaining + 1);
             }
         }
     }

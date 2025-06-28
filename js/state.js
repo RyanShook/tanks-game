@@ -41,3 +41,6 @@ export function setPlayerHitCount(c) { playerHitCount = c; }
 export function setLastPowerUpSpawn(t) { lastPowerUpSpawn = t; }
 export function setExplosionPool(e) { explosionPool = e; }
 export function setProjectilePool(p) { projectilePool = p; }
+export function setScore(s) { score = s; }
+export function setHandleKeyDown(h) { handleKeyDown = h; }
+export function setHandleKeyUp(h) { handleKeyUp = h; }
