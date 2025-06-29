@@ -2,8 +2,8 @@ export const VECTOR_GREEN = 0x00ff00;
 
 export const GAME_PARAMS = {
     // Player settings
-    MOVE_SPEED: 0.1,
-    ROTATION_SPEED: 0.03,
+    MOVE_SPEED: 0.15,
+    ROTATION_SPEED: 0.05,
     MAX_HEALTH: 100,
     MAX_HITS: 3,
     
