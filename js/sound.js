@@ -6,7 +6,9 @@ const sounds = {
     shoot: null,
     explosion: null,
     hit: null,
-    engineIdle: null
+    engineIdle: null,
+    waveComplete: null,
+    newWave: null
 };
 
 export function initSounds(camera) {
@@ -16,6 +18,8 @@ export function initSounds(camera) {
     sounds.explosion = new THREE.Audio(audioListener);
     sounds.hit = new THREE.Audio(audioListener);
     sounds.engineIdle = new THREE.Audio(audioListener);
+    sounds.waveComplete = new THREE.Audio(audioListener);
+    sounds.newWave = new THREE.Audio(audioListener);
     
     audioLoader.load('https://cdn.freesound.org/previews/495/495005_6142149-lq.mp3', buffer => {
         sounds.shoot.setBuffer(buffer);
@@ -36,6 +40,18 @@ export function initSounds(camera) {
         sounds.engineIdle.setBuffer(buffer);
         sounds.engineIdle.setVolume(0.2);
         sounds.engineIdle.setLoop(true);
+    });
+    
+    // Wave complete sound (victory chime)
+    audioLoader.load('https://cdn.freesound.org/previews/316/316847_5123451-lq.mp3', buffer => {
+        sounds.waveComplete.setBuffer(buffer);
+        sounds.waveComplete.setVolume(0.7);
+    });
+    
+    // New wave sound (warning/alert)
+    audioLoader.load('https://cdn.freesound.org/previews/456/456965_9785839-lq.mp3', buffer => {
+        sounds.newWave.setBuffer(buffer);
+        sounds.newWave.setVolume(0.6);
     });
 }
 

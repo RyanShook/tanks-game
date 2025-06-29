@@ -98,19 +98,36 @@ export function handleMovement() {
 
     const previousPosition = state.tankBody.position.clone();
 
-    if (state.keyboardState['KeyW']) state.tankBody.translateZ(-GAME_PARAMS.MOVE_SPEED);
-    if (state.keyboardState['KeyS']) state.tankBody.translateZ(GAME_PARAMS.MOVE_SPEED);
-    if (state.keyboardState['KeyA']) state.tankBody.rotation.y += GAME_PARAMS.ROTATION_SPEED;
-    if (state.keyboardState['KeyD']) state.tankBody.rotation.y -= GAME_PARAMS.ROTATION_SPEED;
+    // Tank body movement - improved responsiveness
+    if (state.keyboardState['KeyW']) {
+        state.tankBody.translateZ(-GAME_PARAMS.MOVE_SPEED);
+    }
+    if (state.keyboardState['KeyS']) {
+        state.tankBody.translateZ(GAME_PARAMS.MOVE_SPEED * 0.7); // Slower reverse like real tanks
+    }
+    if (state.keyboardState['KeyA']) {
+        state.tankBody.rotation.y += GAME_PARAMS.ROTATION_SPEED;
+    }
+    if (state.keyboardState['KeyD']) {
+        state.tankBody.rotation.y -= GAME_PARAMS.ROTATION_SPEED;
+    }
 
+    // Turret rotation with arrow keys for better control
+    if (state.keyboardState['ArrowLeft']) {
+        state.tankTurret.rotation.y += GAME_PARAMS.TURRET_ROTATION_SPEED;
+    }
+    if (state.keyboardState['ArrowRight']) {
+        state.tankTurret.rotation.y -= GAME_PARAMS.TURRET_ROTATION_SPEED;
+    }
+
+    // Check terrain collision and revert if needed
     if (checkTerrainCollision(state.tankBody.position, 2)) {
         state.tankBody.position.copy(previousPosition);
     }
 
-    const maxDistance = 90;
+    // Keep player within authentic Battle Zone bounds
+    const maxDistance = GAME_PARAMS.WORLD_BOUNDS * 0.8;
     state.tankBody.position.x = THREE.MathUtils.clamp(state.tankBody.position.x, -maxDistance, maxDistance);
     state.tankBody.position.z = THREE.MathUtils.clamp(state.tankBody.position.z, -maxDistance, maxDistance);
-
-    state.tankTurret.rotation.y = 0;
 }
 

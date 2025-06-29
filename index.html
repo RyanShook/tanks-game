@@ -3,24 +3,51 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Battle Zone v 0.3</title>
+    <title>Battlezone - Authentic 1980 Arcade Recreation</title>
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div id="startScreen">
       <div id="startContainer">
-        <h1>BATTLE ZONE v0.3</h1>
-        <p>Use WASD to move, SPACE to shoot</p>
-        <button id="startButton">START GAME</button>
+        <h1>BATTLEZONE</h1>
+        <div class="version">AUTHENTIC 1980 ARCADE RECREATION</div>
+        <div class="instructions">
+          <div>ENTER THE BATTLEFIELD</div>
+          <div class="controls">
+            <div>WASD - MOVE TANK</div>
+            <div>ARROW KEYS - ROTATE TURRET</div>
+            <div>SPACE - FIRE CANNON</div>
+            <div>MOUSE - LOOK AROUND (CLICK TO LOCK)</div>
+          </div>
+          <div class="objective">DESTROY ALL ENEMIES</div>
+          <div class="enemy-types">
+            <div>TANK: 1000 pts | MISSILE: 2000 pts</div>
+            <div>SUPERTANK: 3000 pts | UFO: 5000 pts</div>
+            <div>BONUS LIFE EVERY 15,000 POINTS</div>
+          </div>
+        </div>
+        <button id="startButton">PRESS TO START</button>
+        <div class="highscore">HIGH SCORE: <span id="highScoreDisplay">0000</span></div>
       </div>
     </div>
     
     <div id="radar"></div>
     <div id="score">SCORE: 0000</div>
-    <div id="health">ARMOR: ████</div>
+    <div id="health">LIVES: ███</div>
     <div id="gameOver">
-      <div>GAME OVER</div>
-      <div class="restart-text">PRESS R TO RESTART</div>
+      <div id="gameOverContainer">
+        <div class="game-over-title">TANK DESTROYED</div>
+        <div class="final-stats">
+          <div>FINAL SCORE: <span id="finalScore">0000</span></div>
+          <div>WAVES COMPLETED: <span id="finalWave">1</span></div>
+          <div>TANKS DESTROYED: <span id="tanksDestroyed">0</span></div>
+        </div>
+        <div class="game-over-message">MISSION FAILED</div>
+        <div class="restart-instructions">
+          <div>PRESS R TO RESTART</div>
+          <div>PRESS ESC FOR MAIN MENU</div>
+        </div>
+      </div>
     </div>
 
     <!-- Three.js library will be imported in script.js -->

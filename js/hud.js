@@ -20,49 +20,79 @@ export function createHUD() {
     }
 }
 
-export function updateHealthDisplay() {
-    const hits = GAME_PARAMS.MAX_HITS - state.playerHitCount;
-    const healthBar = '█'.repeat(hits) + '░'.repeat(state.playerHitCount);
-    const healthDiv = document.getElementById('health');
-    if (healthDiv) {
-        healthDiv.innerHTML = `ARMOR: ${healthBar}`;
-        healthDiv.style.color = state.playerInvulnerable ? '#ffff00' : '#00ff00';
+export function updateLivesDisplay() {
+    const livesDiv = document.getElementById('health');
+    if (livesDiv) {
+        const livesText = '█'.repeat(state.lives) + '░'.repeat(Math.max(0, 5 - state.lives));
+        livesDiv.innerHTML = `LIVES: ${livesText}`;
+        livesDiv.style.color = state.playerInvulnerable ? '#ffff00' : (state.lives <= 1 ? '#ff0000' : '#00ff00');
     }
 }
 
 export function updateRadar() {
     if (!state.radarContext) return;
+    
+    // Clear radar
     state.radarContext.clearRect(0, 0, state.radarContext.canvas.width, state.radarContext.canvas.height);
+    
+    // Authentic Battlezone radar - simple green scope
     state.radarContext.strokeStyle = '#00ff00';
     state.radarContext.lineWidth = 1;
+    
+    // Center crosshair
     state.radarContext.beginPath();
     state.radarContext.moveTo(160, 0);
     state.radarContext.lineTo(160, 32);
+    state.radarContext.moveTo(140, 16);
+    state.radarContext.lineTo(180, 16);
     state.radarContext.stroke();
     
-    state.radarContext.fillStyle = '#00ff00';
+    // Show enemies based on type with different symbols
     state.enemyTanks.forEach(enemy => {
         if (!enemy.isDestroyed) {
             const dx = enemy.body.position.x - state.tankBody.position.x;
             const dz = enemy.body.position.z - state.tankBody.position.z;
             const distance = Math.sqrt(dx * dx + dz * dz);
-            if (distance < GAME_PARAMS.WORLD_BOUNDS) {
-                const x = 160 + (dx / GAME_PARAMS.WORLD_BOUNDS) * 140;
-                const y = 24 - (dz / GAME_PARAMS.WORLD_BOUNDS) * 20;
-                state.radarContext.beginPath();
-                state.radarContext.arc(x, y, 2, 0, Math.PI * 2);
-                state.radarContext.fill();
+            
+            if (distance < GAME_PARAMS.WORLD_BOUNDS * 0.8) {
+                const x = 160 + (dx / (GAME_PARAMS.WORLD_BOUNDS * 0.8)) * 140;
+                const y = 16 + (dz / (GAME_PARAMS.WORLD_BOUNDS * 0.8)) * 12;
+                
+                // Different radar signatures for different enemy types
+                state.radarContext.fillStyle = '#00ff00';
+                
+                if (enemy.type === 'tank') {
+                    // Tank - small square
+                    state.radarContext.fillRect(x - 1, y - 1, 2, 2);
+                } else if (enemy.type === 'missile') {
+                    // Missile - triangle
+                    state.radarContext.fillStyle = '#ff0000';
+                    state.radarContext.beginPath();
+                    state.radarContext.moveTo(x, y - 2);
+                    state.radarContext.lineTo(x - 1.5, y + 1);
+                    state.radarContext.lineTo(x + 1.5, y + 1);
+                    state.radarContext.closePath();
+                    state.radarContext.fill();
+                } else if (enemy.type === 'supertank') {
+                    // Supertank - larger square
+                    state.radarContext.fillStyle = '#ffff00';
+                    state.radarContext.fillRect(x - 1.5, y - 1.5, 3, 3);
+                } else if (enemy.type === 'ufo') {
+                    // UFO - circle
+                    state.radarContext.fillStyle = '#ffff00';
+                    state.radarContext.beginPath();
+                    state.radarContext.arc(x, y, 2, 0, Math.PI * 2);
+                    state.radarContext.fill();
+                }
             }
         }
     });
-    
-    // No spaceships in authentic Battle Zone
 }
 
 export function updateWaveDisplay() {
     const scoreDiv = document.getElementById('score');
     if (scoreDiv) {
-        const formattedScore = state.score.toString().padStart(4, '0');
+        const formattedScore = state.score.toString().padStart(6, '0');
         scoreDiv.innerHTML = `WAVE: ${state.currentWave} | SCORE: ${formattedScore} | ENEMIES: ${state.enemiesRemaining}`;
     }
 }
@@ -82,9 +112,11 @@ export function showWaveCompletionMessage(bonus) {
     message.style.padding = '20px';
     message.style.border = '2px solid #00ff00';
     message.innerHTML = `
-        WAVE ${state.currentWave} COMPLETE<br>
-        BONUS: ${bonus} POINTS<br>
-        <div style="font-size: 16px; margin-top: 10px;">PREPARING WAVE ${state.currentWave + 1}...</div>
+        <div style="font-size: 28px; margin-bottom: 10px;">WAVE ${state.currentWave - 1} ELIMINATED</div>
+        <div style="font-size: 20px;">ALL TARGETS DESTROYED</div>
+        <div style="font-size: 18px; margin: 10px 0;">WAVE BONUS: ${bonus} POINTS</div>
+        <div style="font-size: 16px; color: #ffff00;">INCOMING WAVE ${state.currentWave}...</div>
+        <div style="font-size: 14px; margin-top: 10px;">PREPARE FOR BATTLE</div>
     `;
     
     document.body.appendChild(message);
@@ -93,7 +125,7 @@ export function showWaveCompletionMessage(bonus) {
     
     setTimeout(() => {
         document.body.removeChild(message);
-    }, 2500);
+    }, 3000);
 }
 
 function createWaveFlash() {
