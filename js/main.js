@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GAME_PARAMS } from './constants.js';
 import * as state from './state.js';
 import { initProjectiles, updateProjectiles, fireProjectile } from './projectile.js';
-import { initEffects, createExplosion } from './effects.js';
+import { initEffects, createExplosion, updateCameraShake } from './effects.js';
 import { updatePowerUps } from './powerup.js';
 import { createHUD, updateHealthDisplay, updateRadar, updateWaveDisplay, showWaveCompletionMessage } from './hud.js';
 import { initSounds, playSound } from './sound.js';
@@ -72,10 +72,7 @@ function init() {
     document.addEventListener('keyup', state.handleKeyUp);
     window.addEventListener('resize', onWindowResize, false);
 
-    initSounds(state.camera);
-    setTimeout(() => playSound('engineIdle'), 1000);
-
-    animate();
+    // Don't start sounds or animation until user clicks start button
 }
 
 function onWindowResize() {
@@ -100,6 +97,7 @@ function animate() {
         }
         
         updateHealthDisplay();
+        updateCameraShake(); // Update camera shake effect
         
         // Force render - this should show something!
         if (state.renderer && state.scene && state.camera) {
@@ -220,5 +218,30 @@ function checkWaveCompletion() {
     }
 }
 
-// Initialize the game
+function startGame() {
+    // Hide start screen
+    const startScreen = document.getElementById('startScreen');
+    if (startScreen) {
+        startScreen.style.display = 'none';
+    }
+    
+    // Initialize audio AFTER user interaction
+    initSounds(state.camera);
+    setTimeout(() => playSound('engineIdle'), 1000);
+    
+    // Start game loop
+    animate();
+    
+    console.log('Game started with audio enabled!');
+}
+
+// Set up the scene but don't start the game yet
 init();
+
+// Add event listener for start button
+document.addEventListener('DOMContentLoaded', () => {
+    const startButton = document.getElementById('startButton');
+    if (startButton) {
+        startButton.addEventListener('click', startGame);
+    }
+});

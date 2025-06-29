@@ -29,6 +29,9 @@ export function createExplosion(position, color, size = 1) {
     if (!explosionPool) return;
     playSound('explosion');
     
+    // Add camera shake based on explosion size
+    shakeCamera(size * 0.6, 200 + size * 100);
+    
     const explosion = explosionPool.acquire();
     explosion.visible = true;
     explosion.position.copy(position);
@@ -58,9 +61,60 @@ export function createExplosion(position, color, size = 1) {
     animateExplosion();
 }
 
+// Camera shake system
+let cameraShake = {
+    intensity: 0,
+    duration: 0,
+    elapsed: 0,
+    originalPosition: new THREE.Vector3()
+};
+
+export function shakeCamera(intensity = 0.5, duration = 300) {
+    if (cameraShake.intensity < intensity) {
+        cameraShake.intensity = intensity;
+        cameraShake.duration = duration;
+        cameraShake.elapsed = 0;
+        
+        // Store the camera's original position relative to its parent
+        if (state.camera.parent) {
+            cameraShake.originalPosition.copy(state.camera.position);
+        }
+    }
+}
+
+export function updateCameraShake() {
+    if (cameraShake.intensity <= 0) return;
+    
+    cameraShake.elapsed += 16; // Assume ~60fps
+    const progress = cameraShake.elapsed / cameraShake.duration;
+    
+    if (progress >= 1) {
+        // Shake finished, reset camera position
+        cameraShake.intensity = 0;
+        if (state.camera.parent) {
+            state.camera.position.copy(cameraShake.originalPosition);
+        }
+        return;
+    }
+    
+    // Apply shake with decreasing intensity
+    const currentIntensity = cameraShake.intensity * (1 - progress);
+    const shakeX = (Math.random() - 0.5) * currentIntensity;
+    const shakeY = (Math.random() - 0.5) * currentIntensity;
+    const shakeZ = (Math.random() - 0.5) * currentIntensity;
+    
+    if (state.camera.parent) {
+        state.camera.position.copy(cameraShake.originalPosition);
+        state.camera.position.add(new THREE.Vector3(shakeX, shakeY, shakeZ));
+    }
+}
+
 export function createEnhancedExplosion(position, color, size = 1) {
     if (!explosionPool) return;
     playSound('explosion');
+    
+    // Add stronger camera shake for enhanced explosions
+    shakeCamera(size * 0.8, 300 + size * 150);
     
     const explosion = explosionPool.acquire();
     explosion.visible = true;

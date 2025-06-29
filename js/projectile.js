@@ -3,7 +3,7 @@ import { GAME_PARAMS, VECTOR_GREEN } from './constants.js';
 import * as state from './state.js';
 import { playSound } from './sound.js';
 import { ObjectPool, checkCollision } from './utils.js';
-import { createExplosion } from './effects.js';
+import { createExplosion, shakeCamera } from './effects.js';
 
 export let projectilePool;
 
@@ -46,6 +46,7 @@ export function fireProjectile() {
     state.projectiles.push(projectile);
 
     createExplosion(cannonWorldPos, VECTOR_GREEN, 0.3);
+    shakeCamera(0.3, 150); // Light shake when firing
 
     state.tankCannon.rotation.x = -0.1;
     setTimeout(() => { state.tankCannon.rotation.x = 0; }, 100);
