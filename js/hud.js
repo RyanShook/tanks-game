@@ -56,19 +56,7 @@ export function updateRadar() {
         }
     });
     
-    state.radarContext.fillStyle = '#ffff00';
-    state.enemySpaceships.forEach(spaceship => {
-        if (!spaceship.isDestroyed) {
-            const dx = spaceship.mesh.position.x - state.tankBody.position.x;
-            const dz = spaceship.mesh.position.z - state.tankBody.position.z;
-            const distance = Math.sqrt(dx * dx + dz * dz);
-            if (distance < GAME_PARAMS.WORLD_BOUNDS) {
-                const x = 160 + (dx / GAME_PARAMS.WORLD_BOUNDS) * 140;
-                const y = 24 - (dz / GAME_PARAMS.WORLD_BOUNDS) * 20;
-                state.radarContext.fillRect(x - 1.5, y - 1.5, 3, 3);
-            }
-        }
-    });
+    // No spaceships in authentic Battle Zone
 }
 
 export function updateWaveDisplay() {

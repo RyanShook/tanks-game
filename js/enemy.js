@@ -18,12 +18,9 @@ class EnemyTank {
         this.cannon = createCannon(this.dimensions.cannon.radius, this.dimensions.cannon.length);
         this.cannon.position.y = 0.1;
         this.turret.add(this.cannon);
-        this.health = GAME_PARAMS.MAX_HEALTH;
         this.isDestroyed = false;
         this.lastShotTime = Date.now();
         this.scene = scene;
-        this.state = 'seeking';
-        this.stateTimer = 0;
         scene.add(this.body);
     }
 
@@ -34,44 +31,42 @@ class EnemyTank {
         const toPlayer = state.tankBody.position.clone().sub(this.body.position);
         const distanceToPlayer = toPlayer.length();
 
-        if (this.stateTimer < now) {
-            if (Math.random() < 0.3) {
-                this.state = Math.random() < 0.7 ? 'seeking' : 'retreating';
-                this.stateTimer = now + 2000 + Math.random() * 3000;
-            }
-        }
-
-        if (this.state === 'seeking' && distanceToPlayer > GAME_PARAMS.ENEMY_IDEAL_DISTANCE) {
+        // Authentic Battle Zone: Simple direct approach toward player
+        if (distanceToPlayer > 15) {
             this.body.lookAt(state.tankBody.position);
             this.body.translateZ(GAME_PARAMS.ENEMY_SPEED);
-        } else if (this.state === 'retreating' || distanceToPlayer < GAME_PARAMS.ENEMY_IDEAL_DISTANCE - 5) {
+        } else {
+            // Stop and turn turret to face player when close
             this.body.lookAt(state.tankBody.position);
-            this.body.translateZ(-GAME_PARAMS.ENEMY_SPEED);
         }
 
+        // Basic collision with obstacles only
         if (checkTerrainCollision(this.body.position, 2)) {
             this.body.position.copy(previousPosition);
+            // Simple obstacle avoidance - turn slightly and try again
+            this.body.rotateY((Math.random() - 0.5) * 0.5);
         }
 
+        // Keep within world bounds
         this.body.position.x = THREE.MathUtils.clamp(this.body.position.x, -GAME_PARAMS.WORLD_BOUNDS, GAME_PARAMS.WORLD_BOUNDS);
         this.body.position.z = THREE.MathUtils.clamp(this.body.position.z, -GAME_PARAMS.WORLD_BOUNDS, GAME_PARAMS.WORLD_BOUNDS);
+        
+        // Always point turret at player
         this.turret.lookAt(state.tankBody.position);
 
-        if (now - this.lastShotTime > GAME_PARAMS.ENEMY_SHOT_INTERVAL && distanceToPlayer < 40 && this.state === 'seeking') {
+        // Simple shooting - fire when in range and timer allows
+        if (now - this.lastShotTime > GAME_PARAMS.ENEMY_SHOT_INTERVAL && distanceToPlayer < 60) {
             this.fireAtPlayer();
             this.lastShotTime = now;
         }
     }
 
     takeDamage(amount) {
-        this.health -= amount;
-        if (this.health <= 0 && !this.isDestroyed) {
+        // Authentic Battle Zone: One hit destroys tank
+        if (!this.isDestroyed) {
             this.destroy();
             state.score += GAME_PARAMS.TANK_SCORE;
             state.setEnemiesRemaining(state.enemiesRemaining - 1);
-            if (Math.floor(state.score / GAME_PARAMS.BONUS_LIFE_SCORE) > Math.floor((state.score - GAME_PARAMS.TANK_SCORE) / GAME_PARAMS.BONUS_LIFE_SCORE)) {
-                state.setPlayerHitCount(Math.max(0, state.playerHitCount - 1));
-            }
         }
     }
 
@@ -103,261 +98,28 @@ class EnemyTank {
     }
 }
 
-class EnemySaucer {
-    constructor(scene, position) {
-        this.scene = scene;
-        this.mesh = createSaucerMesh();
-        this.mesh.position.copy(position);
-        this.mesh.position.y = 8 + Math.random() * 10;
-        this.health = 50;
-        this.isDestroyed = false;
-        this.lastShotTime = Date.now();
-        this.speed = 0.03;
-        this.direction = new THREE.Vector3((Math.random() - 0.5) * 2, 0, (Math.random() - 0.5) * 2).normalize();
-        this.hoverOffset = Math.random() * Math.PI * 2;
-        scene.add(this.mesh);
-    }
-
-    update() {
-        if (this.isDestroyed) return;
-        const now = Date.now();
-        this.mesh.position.add(this.direction.clone().multiplyScalar(this.speed));
-        this.mesh.position.y = 8 + Math.sin(now * 0.003 + this.hoverOffset) * 3;
-        if (Math.random() < 0.02) {
-            this.direction = new THREE.Vector3((Math.random() - 0.5) * 2, 0, (Math.random() - 0.5) * 2).normalize();
-        }
-        if (Math.abs(this.mesh.position.x) > GAME_PARAMS.WORLD_BOUNDS) this.direction.x *= -1;
-        if (Math.abs(this.mesh.position.z) > GAME_PARAMS.WORLD_BOUNDS) this.direction.z *= -1;
-        this.mesh.rotation.y += 0.01;
-        const distanceToPlayer = this.mesh.position.distanceTo(state.tankBody.position);
-        if (now - this.lastShotTime > 4000 && distanceToPlayer < 50 && Math.random() < 0.3) {
-            this.fireAtPlayer();
-            this.lastShotTime = now;
-        }
-    }
-
-    takeDamage(amount) {
-        this.health -= amount;
-        if (this.health <= 0 && !this.isDestroyed) {
-            this.destroy();
-            state.score += GAME_PARAMS.SAUCER_SCORE;
-            state.setEnemiesRemaining(state.enemiesRemaining - 1);
-        }
-    }
-
-    destroy() {
-        this.isDestroyed = true;
-        createEnhancedExplosion(this.mesh.position, VECTOR_GREEN, 2);
-        this.scene.remove(this.mesh);
-    }
-
-    fireAtPlayer() {
-        if (this.isDestroyed) return;
-        const projectile = projectilePool.acquire();
-        projectile.visible = true;
-        projectile.position.copy(this.mesh.position);
-        const toPlayer = state.tankBody.position.clone().sub(this.mesh.position).normalize().multiplyScalar(GAME_PARAMS.PROJECTILE_SPEED * 0.6);
-        projectile.userData.velocity = toPlayer;
-        projectile.userData.distanceTraveled = 0;
-        projectile.userData.creationTime = Date.now();
-        projectile.userData.isEnemyProjectile = true;
-        state.projectiles.push(projectile);
-        createExplosion(this.mesh.position, 0xff4444, 0.3);
-    }
-}
-
-class EnemyFighter {
-    constructor(scene, position) {
-        this.scene = scene;
-        this.mesh = createFighterMesh();
-        this.mesh.position.copy(position);
-        this.mesh.position.y = 12 + Math.random() * 8;
-        this.health = 75;
-        this.isDestroyed = false;
-        this.lastShotTime = Date.now();
-        this.speed = 0.05;
-        this.attackPattern = Math.random() < 0.5 ? 'circle' : 'dive';
-        this.patternTimer = 0;
-        this.centerPoint = position.clone();
-        scene.add(this.mesh);
-    }
-
-    update() {
-        if (this.isDestroyed) return;
-        const now = Date.now();
-        if (this.attackPattern === 'circle') {
-            this.patternTimer += 0.02;
-            const radius = 25;
-            this.mesh.position.x = this.centerPoint.x + Math.cos(this.patternTimer) * radius;
-            this.mesh.position.z = this.centerPoint.z + Math.sin(this.patternTimer) * radius;
-            this.mesh.lookAt(state.tankBody.position);
-        } else {
-            const toPlayer = state.tankBody.position.clone().sub(this.mesh.position);
-            if (toPlayer.length() > 15) {
-                toPlayer.normalize().multiplyScalar(this.speed);
-                this.mesh.position.add(toPlayer);
-                this.mesh.lookAt(state.tankBody.position);
-            } else {
-                this.mesh.position.y += 0.1;
-                if (this.mesh.position.y > 20) {
-                    this.attackPattern = 'circle';
-                    this.centerPoint = this.mesh.position.clone();
-                }
-            }
-        }
-        this.mesh.position.x = THREE.MathUtils.clamp(this.mesh.position.x, -GAME_PARAMS.WORLD_BOUNDS, GAME_PARAMS.WORLD_BOUNDS);
-        this.mesh.position.z = THREE.MathUtils.clamp(this.mesh.position.z, -GAME_PARAMS.WORLD_BOUNDS, GAME_PARAMS.WORLD_BOUNDS);
-        const distanceToPlayer = this.mesh.position.distanceTo(state.tankBody.position);
-        if (now - this.lastShotTime > 2500 && distanceToPlayer < 40) {
-            this.fireAtPlayer();
-            this.lastShotTime = now;
-        }
-    }
-
-    takeDamage(amount) {
-        this.health -= amount;
-        if (this.health <= 0 && !this.isDestroyed) {
-            this.destroy();
-            state.score += GAME_PARAMS.FIGHTER_SCORE;
-            state.setEnemiesRemaining(state.enemiesRemaining - 1);
-        }
-    }
-
-    destroy() {
-        this.isDestroyed = true;
-        createEnhancedExplosion(this.mesh.position, VECTOR_GREEN, 2.5);
-        this.scene.remove(this.mesh);
-    }
-
-    fireAtPlayer() {
-        if (this.isDestroyed) return;
-        const projectile = projectilePool.acquire();
-        projectile.visible = true;
-        projectile.position.copy(this.mesh.position);
-        const toPlayer = state.tankBody.position.clone().sub(this.mesh.position).normalize().multiplyScalar(GAME_PARAMS.PROJECTILE_SPEED * 0.7);
-        projectile.userData.velocity = toPlayer;
-        projectile.userData.distanceTraveled = 0;
-        projectile.userData.creationTime = Date.now();
-        projectile.userData.isEnemyProjectile = true;
-        state.projectiles.push(projectile);
-        createExplosion(this.mesh.position, 0xff6666, 0.4);
-    }
-}
 
 export function spawnWave(waveNumber) {
     state.setEnemiesRemaining(0);
     state.enemyTanks.forEach(tank => state.scene.remove(tank.body));
-    state.enemySpaceships.forEach(ship => state.scene.remove(ship.mesh));
     state.enemyTanks.length = 0;
-    state.enemySpaceships.length = 0;
 
-    const numTanks = Math.min(3 + Math.floor(waveNumber / 2), 8);
-    const tankRadius = 25 + waveNumber * 2;
+    // Authentic Battle Zone: Progressive tank spawning like original
+    const numTanks = Math.min(1 + Math.floor(waveNumber / 2), 4);
+    const spawnRadius = 80 + waveNumber * 5;
+    
     for (let i = 0; i < numTanks; i++) {
-        const angle = (i / numTanks) * Math.PI * 2;
-        const x = Math.cos(angle) * tankRadius;
-        const z = Math.sin(angle) * tankRadius;
+        const angle = (i / numTanks) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+        const distance = spawnRadius + (Math.random() - 0.5) * 20;
+        const x = Math.cos(angle) * distance;
+        const z = Math.sin(angle) * distance;
         const enemyTank = new EnemyTank(state.scene, new THREE.Vector3(x, 0, z));
         state.enemyTanks.push(enemyTank);
         state.setEnemiesRemaining(state.enemiesRemaining + 1);
     }
-
-    if (waveNumber >= 2) {
-        const numSaucers = Math.min(Math.floor(waveNumber / 2), 4);
-        const numFighters = Math.min(Math.floor((waveNumber - 1) / 3), 3);
-        for (let i = 0; i < numSaucers; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 30 + Math.random() * 20;
-            const x = Math.cos(angle) * distance;
-            const z = Math.sin(angle) * distance;
-            const saucer = new EnemySaucer(state.scene, new THREE.Vector3(x, 0, z));
-            state.enemySpaceships.push(saucer);
-            state.setEnemiesRemaining(state.enemiesRemaining + 1);
-        }
-        if (waveNumber >= 4) {
-            for (let i = 0; i < numFighters; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const distance = 35 + Math.random() * 15;
-                const x = Math.cos(angle) * distance;
-                const z = Math.sin(angle) * distance;
-                const fighter = new EnemyFighter(state.scene, new THREE.Vector3(x, 0, z));
-                state.enemySpaceships.push(fighter);
-                state.setEnemiesRemaining(state.enemiesRemaining + 1);
-            }
-        }
-    }
 }
 
 
-function createSaucerMesh() {
-    const group = new THREE.Group();
-    const rings = [];
-    const segments = 16;
-    const radius = 2;
-    for (let i = 0; i < segments; i++) {
-        const angle1 = (i / segments) * Math.PI * 2;
-        const angle2 = ((i + 1) / segments) * Math.PI * 2;
-        rings.push(
-            new THREE.Vector3(Math.cos(angle1) * radius, 0.5, Math.sin(angle1) * radius),
-            new THREE.Vector3(Math.cos(angle2) * radius, 0.5, Math.sin(angle2) * radius)
-        );
-    }
-    for (let i = 0; i < segments; i++) {
-        const angle1 = (i / segments) * Math.PI * 2;
-        const angle2 = ((i + 1) / segments) * Math.PI * 2;
-        rings.push(
-            new THREE.Vector3(Math.cos(angle1) * radius, -0.5, Math.sin(angle1) * radius),
-            new THREE.Vector3(Math.cos(angle2) * radius, -0.5, Math.sin(angle2) * radius)
-        );
-    }
-    for (let i = 0; i < segments; i++) {
-        const angle = (i / segments) * Math.PI * 2;
-        rings.push(
-            new THREE.Vector3(Math.cos(angle) * radius, 0.5, Math.sin(angle) * radius),
-            new THREE.Vector3(Math.cos(angle) * radius, -0.5, Math.sin(angle) * radius)
-        );
-    }
-    const domeRadius = radius * 0.6;
-    for (let i = 0; i < segments; i++) {
-        const angle1 = (i / segments) * Math.PI * 2;
-        const angle2 = ((i + 1) / segments) * Math.PI * 2;
-        rings.push(
-            new THREE.Vector3(Math.cos(angle1) * domeRadius, 1, Math.sin(angle1) * domeRadius),
-            new THREE.Vector3(Math.cos(angle2) * domeRadius, 1, Math.sin(angle2) * domeRadius)
-        );
-    }
-    for (let i = 0; i < segments; i += 2) {
-        const angle = (i / segments) * Math.PI * 2;
-        rings.push(
-            new THREE.Vector3(Math.cos(angle) * radius, 0.5, Math.sin(angle) * radius),
-            new THREE.Vector3(Math.cos(angle) * domeRadius, 1, Math.sin(angle) * domeRadius)
-        );
-    }
-    const geometry = new THREE.BufferGeometry().setFromPoints(rings);
-    const saucer = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: VECTOR_GREEN }));
-    group.add(saucer);
-    return group;
-}
-
-function createFighterMesh() {
-    const group = new THREE.Group();
-    const points = [];
-    const bodyPoints = [[0, 0, -3], [-1, 0, 0], [0, 0, 2], [1, 0, 0], [0, 0, -3]];
-    for (let i = 0; i < bodyPoints.length - 1; i++) {
-        points.push(new THREE.Vector3(...bodyPoints[i]), new THREE.Vector3(...bodyPoints[i + 1]));
-    }
-    points.push(new THREE.Vector3(-1, 0, 0), new THREE.Vector3(-0.5, 0, 1));
-    points.push(new THREE.Vector3(1, 0, 0), new THREE.Vector3(0.5, 0, 1));
-    points.push(new THREE.Vector3(0, 0, 2), new THREE.Vector3(0, 1, 1.5));
-    points.push(new THREE.Vector3(-0.3, 0, 1.5), new THREE.Vector3(-0.3, 0.8, 1.3));
-    points.push(new THREE.Vector3(0.3, 0, 1.5), new THREE.Vector3(0.3, 0.8, 1.3));
-    points.push(new THREE.Vector3(-0.3, 0, 2), new THREE.Vector3(-0.3, 0, 2.5));
-    points.push(new THREE.Vector3(0.3, 0, 2), new THREE.Vector3(0.3, 0, 2.5));
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const fighter = new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: VECTOR_GREEN }));
-    group.add(fighter);
-    return group;
-}
 
 export function checkTerrainCollision(position, radius) {
     if (!position || typeof position.x === 'undefined') {

@@ -4,18 +4,15 @@ export const GAME_PARAMS = {
     // Player settings
     MOVE_SPEED: 0.15,
     ROTATION_SPEED: 0.05,
-    MAX_HEALTH: 100,
-    MAX_HITS: 3,
+    MAX_HITS: 5,
     
     // Projectile settings
     PROJECTILE_SPEED: 4.0,
     PROJECTILE_MAX_DISTANCE: 150,
     
-    // Enemy settings
-    ENEMY_SPEED: 0.05,
-    ENEMY_TURN_SPEED: 0.02,
-    ENEMY_SHOT_INTERVAL: 3000,
-    ENEMY_IDEAL_DISTANCE: 20,
+    // Enemy settings - Authentic Battle Zone
+    ENEMY_SPEED: 0.08,
+    ENEMY_SHOT_INTERVAL: 2500,
     
     // World settings
     GRID_SIZE: 500,
@@ -25,11 +22,7 @@ export const GAME_PARAMS = {
     NUM_OBSTACLES: 15,
     WORLD_BOUNDS: 200,
     
-    // Scoring
-    TANK_SCORE: 1000,
-    SAUCER_SCORE: 1500,
-    FIGHTER_SCORE: 2000,
-    WAVE_BONUS: 500,
-    BONUS_LIFE_SCORE: 15000,
+    // Scoring  
+    TANK_SCORE: 100,
 
 };

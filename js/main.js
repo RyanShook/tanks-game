@@ -18,7 +18,6 @@ function init() {
     state.scene.add(ambientLight);
 
     // Initialize game state
-    state.setPlayerHealth(GAME_PARAMS.MAX_HEALTH);
     state.setGameOverScreen(document.getElementById('gameOver'));
 
     initProjectiles(state.scene);
@@ -88,7 +87,6 @@ function animate() {
             handleMovement();
             updateProjectiles(gameOver);
             state.enemyTanks.forEach(enemy => enemy.update());
-            state.enemySpaceships.forEach(spaceship => spaceship.update());
             updateRadar();
             updateWaveDisplay();
             checkWaveCompletion();
@@ -150,7 +148,6 @@ function handleRestart(event) {
 }
 
 function resetGame() {
-    state.setPlayerHealth(GAME_PARAMS.MAX_HEALTH);
     state.setPlayerHitCount(0);
     state.setGameOver(false);
     state.setPlayerInvulnerable(false);
@@ -168,20 +165,11 @@ function resetGame() {
     for (const enemy of state.enemyTanks) {
         state.scene.remove(enemy.body);
     }
-    for (const spaceship of state.enemySpaceships) {
-        state.scene.remove(spaceship.mesh);
-    }
     state.enemyTanks.length = 0;
-    state.enemySpaceships.length = 0;
-
 
     state.setCurrentWave(1);
     state.setScore(0);
     state.setEnemiesRemaining(0);
-
-    GAME_PARAMS.MOVE_SPEED = 0.1;
-    GAME_PARAMS.ROTATION_SPEED = 0.03;
-    GAME_PARAMS.ENEMY_SHOT_INTERVAL = 3000;
 
     spawnWave(state.currentWave);
 
@@ -199,7 +187,7 @@ function checkWaveCompletion() {
         
         // Show wave completion message
         if (typeof showWaveCompletionMessage === 'function') {
-            const waveBonus = GAME_PARAMS.WAVE_BONUS;
+            const waveBonus = 100;
             state.score += waveBonus;
             showWaveCompletionMessage(waveBonus);
         }
