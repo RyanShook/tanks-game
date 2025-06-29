@@ -82,14 +82,15 @@ export function createPlayer() {
     tankTurret.add(tankCannon);
     state.setTankCannon(tankCannon);
 
-    // Attach camera to turret first, then set relative position
+    // Attach camera to turret for first-person view
     tankTurret.add(state.camera);
-    state.camera.position.set(0, 0.5, 4); // Behind and above turret
+    state.camera.position.set(0, 0.3, -0.5); // Inside turret, first-person view
     state.camera.lookAt(0, 0, -10); // Look forward
 
-    tankBody.visible = true;
-    tankTurret.visible = true;
-    tankCannon.visible = true;
+    // Hide player tank - you can't see yourself in first-person
+    tankBody.visible = false;
+    tankTurret.visible = false;
+    tankCannon.visible = false;
 }
 
 export function handleMovement() {

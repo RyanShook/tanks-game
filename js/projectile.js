@@ -56,7 +56,6 @@ export function updateProjectiles(gameOver) {
     for (let i = state.projectiles.length - 1; i >= 0; i--) {
         const projectile = state.projectiles[i];
         
-        projectile.userData.velocity.y -= GAME_PARAMS.PROJECTILE_GRAVITY;
         projectile.position.add(projectile.userData.velocity);
         projectile.userData.distanceTraveled += projectile.userData.velocity.length();
 

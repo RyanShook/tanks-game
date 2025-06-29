@@ -8,9 +8,8 @@ export const GAME_PARAMS = {
     MAX_HITS: 3,
     
     // Projectile settings
-    PROJECTILE_SPEED: 0.8,
+    PROJECTILE_SPEED: 4.0,
     PROJECTILE_MAX_DISTANCE: 150,
-    PROJECTILE_GRAVITY: 0.001,
     
     // Enemy settings
     ENEMY_SPEED: 0.05,
