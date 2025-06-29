@@ -9,15 +9,15 @@ export let projectilePool;
 
 export function initProjectiles(scene) {
     projectilePool = new ObjectPool(() => {
-        // Make projectiles larger and more visible - authentic Battle Zone style
-        const projectileGeometry = new THREE.CylinderGeometry(0.15, 0.15, 1.0, 6);
+        // Bold, visible projectiles like original Battlezone
+        const projectileGeometry = new THREE.CylinderGeometry(0.3, 0.3, 2.0, 6);
         const projectile = new THREE.LineSegments(
             new THREE.EdgesGeometry(projectileGeometry),
             new THREE.LineBasicMaterial({ 
                 color: VECTOR_GREEN,
-                linewidth: 2,
-                transparent: true,
-                opacity: 0.9
+                linewidth: 3,
+                transparent: false,
+                opacity: 1.0
             })
         );
         projectile.visible = false;
@@ -55,9 +55,9 @@ export function fireProjectile() {
 
     state.projectiles.push(projectile);
 
-    // Larger muzzle flash for better feedback
-    createExplosion(cannonWorldPos, VECTOR_GREEN, 0.5);
-    shakeCamera(0.4, 200); // More noticeable shake when firing
+    // Dramatic muzzle flash like original Battlezone
+    createExplosion(cannonWorldPos, VECTOR_GREEN, 1.5);
+    shakeCamera(0.8, 300); // Strong shake when firing
 
     // Cannon recoil animation
     state.tankCannon.rotation.x = -0.15;
@@ -67,6 +67,11 @@ export function fireProjectile() {
 export function updateProjectiles(gameOver) {
     for (let i = state.projectiles.length - 1; i >= 0; i--) {
         const projectile = state.projectiles[i];
+        
+        // Add gravity for authentic Battlezone projectile arc
+        if (!projectile.userData.isEnemyProjectile) {
+            projectile.userData.velocity.y -= GAME_PARAMS.PROJECTILE_GRAVITY;
+        }
         
         projectile.position.add(projectile.userData.velocity);
         projectile.userData.distanceTraveled += projectile.userData.velocity.length();
@@ -98,9 +103,9 @@ export function updateProjectiles(gameOver) {
                         state.setPlayerInvulnerable(true);
                         setTimeout(() => { state.setPlayerInvulnerable(false); }, 1500);
                         
-                        // Strong visual feedback for hit
-                        shakeCamera(1.2, 500);
-                        createExplosion(state.tankBody.position, 0xff4444, 2.0);
+                        // Dramatic hit feedback like original Battlezone
+                        shakeCamera(2.0, 800);
+                        createExplosion(state.tankBody.position, 0xff4444, 4.0);
                     }
                 }
                 projectilePool.release(projectile);
@@ -115,8 +120,8 @@ export function updateProjectiles(gameOver) {
                     enemyTank.takeDamage(1); // One hit destroys tank in authentic Battle Zone
                     projectilePool.release(projectile);
                     state.projectiles.splice(i, 1);
-                    createExplosion(projectile.position, VECTOR_GREEN, 1.2);
-                    shakeCamera(0.5, 250); // Satisfying hit feedback
+                    createExplosion(projectile.position, VECTOR_GREEN, 3.0);
+                    shakeCamera(1.0, 400); // Satisfying hit feedback
                     break;
                 }
             }

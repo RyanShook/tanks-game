@@ -56,16 +56,36 @@ class EnemyTank {
         const toPlayer = state.tankBody.position.clone().sub(this.body.position);
         const distanceToPlayer = toPlayer.length();
         
-        // Simple pursuit behavior
-        if (distanceToPlayer > 20) {
+        // Authentic Battlezone AI - more aggressive and strategic
+        const optimalDistance = 30 + Math.random() * 20;
+        
+        if (distanceToPlayer > optimalDistance) {
+            // Approach with slight evasive maneuvering
+            const approachAngle = Math.atan2(toPlayer.z, toPlayer.x) + (Math.random() - 0.5) * 0.5;
+            const targetX = this.body.position.x + Math.cos(approachAngle) * GAME_PARAMS.TANK_SPEED;
+            const targetZ = this.body.position.z + Math.sin(approachAngle) * GAME_PARAMS.TANK_SPEED;
+            
+            this.body.position.x = targetX;
+            this.body.position.z = targetZ;
             this.body.lookAt(state.tankBody.position);
-            this.body.translateZ(GAME_PARAMS.TANK_SPEED);
+        } else if (distanceToPlayer < optimalDistance - 10) {
+            // Back away while keeping gun trained on player
+            this.body.lookAt(state.tankBody.position);
+            this.body.translateZ(-GAME_PARAMS.TANK_SPEED * 0.7);
+        } else {
+            // Strafe around player
+            const strafeAngle = Math.atan2(toPlayer.z, toPlayer.x) + Math.PI / 2;
+            this.body.position.x += Math.cos(strafeAngle) * GAME_PARAMS.TANK_SPEED * 0.5;
+            this.body.position.z += Math.sin(strafeAngle) * GAME_PARAMS.TANK_SPEED * 0.5;
         }
         
-        // Basic obstacle avoidance
+        // Smart obstacle avoidance
         if (this.checkTerrainCollision(this.body.position, 2)) {
             this.body.position.copy(previousPosition);
-            this.body.rotateY((Math.random() - 0.5) * 0.8);
+            // Try to go around obstacle
+            const avoidAngle = Math.atan2(toPlayer.z, toPlayer.x) + (Math.random() < 0.5 ? 1 : -1) * Math.PI / 3;
+            this.body.position.x += Math.cos(avoidAngle) * GAME_PARAMS.TANK_SPEED;
+            this.body.position.z += Math.sin(avoidAngle) * GAME_PARAMS.TANK_SPEED;
         }
         
         // Keep within bounds
@@ -75,8 +95,8 @@ class EnemyTank {
         // Always point turret at player
         this.turret.lookAt(state.tankBody.position);
         
-        // Fire at player
-        if (now - this.lastShotTime > GAME_PARAMS.TANK_SHOT_INTERVAL && distanceToPlayer < 100) {
+        // Aggressive firing like original Battlezone
+        if (now - this.lastShotTime > GAME_PARAMS.TANK_SHOT_INTERVAL && distanceToPlayer < 120) {
             this.fireAtPlayer();
             this.lastShotTime = now;
         }
@@ -424,6 +444,14 @@ export function spawnWave(waveNumber) {
         state.enemyTanks.push(enemy);
         state.setEnemiesRemaining(state.enemiesRemaining + 1);
     }
+}
+
+// Export terrain collision function for player use
+export function checkTerrainCollision(position, radius) {
+    for (const obstacle of state.obstacles) {
+        if (checkCollision({ position }, obstacle, radius + 1.5)) return true;
+    }
+    return false;
 }
 
 export { EnemyTank, EnemyMissile, EnemySupertank, EnemyUFO };

@@ -5,29 +5,30 @@ export const VECTOR_YELLOW = 0xffff00;
 
 // Authentic Battlezone Game Parameters
 export const GAME_PARAMS = {
-    // Player Tank Settings
-    MOVE_SPEED: 0.2,
-    ROTATION_SPEED: 0.06,
-    TURRET_ROTATION_SPEED: 0.08,
+    // Player Tank Settings - Arcade responsive feel
+    MOVE_SPEED: 0.4,
+    ROTATION_SPEED: 0.12,
+    TURRET_ROTATION_SPEED: 0.15,
     
     // Lives System (Authentic Battlezone)
     STARTING_LIVES: 3,
     BONUS_LIFE_SCORE: 15000,
     
-    // Projectile Settings
-    PROJECTILE_SPEED: 4.0,
-    PROJECTILE_MAX_DISTANCE: 300,
-    FIRE_COOLDOWN: 250,
+    // Projectile Settings - Authentic Battlezone physics
+    PROJECTILE_SPEED: 2.5,
+    PROJECTILE_MAX_DISTANCE: 200,
+    PROJECTILE_GRAVITY: 0.002,
+    FIRE_COOLDOWN: 200,
     
-    // Enemy Settings
-    TANK_SPEED: 0.06,
-    MISSILE_SPEED: 0.12,
-    SUPERTANK_SPEED: 0.10,
-    UFO_SPEED: 0.04,
+    // Enemy Settings - More aggressive like original
+    TANK_SPEED: 0.15,
+    MISSILE_SPEED: 0.25,
+    SUPERTANK_SPEED: 0.18,
+    UFO_SPEED: 0.08,
     
-    TANK_SHOT_INTERVAL: 3000,
-    MISSILE_SHOT_INTERVAL: 1500,
-    SUPERTANK_SHOT_INTERVAL: 2000,
+    TANK_SHOT_INTERVAL: 2000,
+    MISSILE_SHOT_INTERVAL: 800,
+    SUPERTANK_SHOT_INTERVAL: 1200,
     
     // World Settings
     WORLD_BOUNDS: 1000,
