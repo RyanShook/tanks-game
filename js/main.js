@@ -3,7 +3,6 @@ import { GAME_PARAMS } from './constants.js';
 import * as state from './state.js';
 import { initProjectiles, updateProjectiles, fireProjectile } from './projectile.js';
 import { initEffects, createExplosion, updateCameraShake } from './effects.js';
-import { updatePowerUps } from './powerup.js';
 import { createHUD, updateHealthDisplay, updateRadar, updateWaveDisplay, showWaveCompletionMessage } from './hud.js';
 import { initSounds, playSound } from './sound.js';
 import { createMountainRange, createHorizontalGrid, createObstacles } from './world.js';
@@ -90,7 +89,6 @@ function animate() {
             updateProjectiles(gameOver);
             state.enemyTanks.forEach(enemy => enemy.update());
             state.enemySpaceships.forEach(spaceship => spaceship.update());
-            updatePowerUps();
             updateRadar();
             updateWaveDisplay();
             checkWaveCompletion();
@@ -176,11 +174,6 @@ function resetGame() {
     state.enemyTanks.length = 0;
     state.enemySpaceships.length = 0;
 
-    for (const powerUp of state.powerUps) {
-        state.scene.remove(powerUp.mesh);
-    }
-    state.powerUps.length = 0;
-    state.setLastPowerUpSpawn(0);
 
     state.setCurrentWave(1);
     state.setScore(0);

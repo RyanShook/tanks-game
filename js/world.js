@@ -24,9 +24,9 @@ export function createMountainRange() {
     });
     
     const mountainRings = [
-        { distance: GAME_PARAMS.MOUNTAIN_DISTANCE * 0.6, count: 8, size: 15 },
-        { distance: GAME_PARAMS.MOUNTAIN_DISTANCE * 0.8, count: 12, size: 20 },
-        { distance: GAME_PARAMS.MOUNTAIN_DISTANCE, count: 16, size: 25 }
+        { distance: GAME_PARAMS.MOUNTAIN_DISTANCE * 0.7, count: 12, size: 30 },
+        { distance: GAME_PARAMS.MOUNTAIN_DISTANCE * 0.85, count: 16, size: 40 },
+        { distance: GAME_PARAMS.MOUNTAIN_DISTANCE, count: 20, size: 50 }
     ];
     
     mountainRings.forEach(ring => {

@@ -18,12 +18,12 @@ export const GAME_PARAMS = {
     ENEMY_IDEAL_DISTANCE: 20,
     
     // World settings
-    GRID_SIZE: 200,
-    GRID_DIVISIONS: 20,
-    MOUNTAIN_DISTANCE: 140, // 70% of grid size
-    NUM_MOUNTAINS: 16,
-    NUM_OBSTACLES: 25,
-    WORLD_BOUNDS: 90,
+    GRID_SIZE: 500,
+    GRID_DIVISIONS: 50,
+    MOUNTAIN_DISTANCE: 400,
+    NUM_MOUNTAINS: 24,
+    NUM_OBSTACLES: 15,
+    WORLD_BOUNDS: 200,
     
     // Scoring
     TANK_SCORE: 1000,
@@ -32,38 +32,4 @@ export const GAME_PARAMS = {
     WAVE_BONUS: 500,
     BONUS_LIFE_SCORE: 15000,
 
-    // Power-up settings
-    POWERUP_TYPES: {
-        SPEED_BOOST: {
-            duration: 10000,
-            effect: () => {
-                GAME_PARAMS.MOVE_SPEED *= 1.5;
-                GAME_PARAMS.ROTATION_SPEED *= 1.5;
-            },
-            reset: () => {
-                GAME_PARAMS.MOVE_SPEED = 0.1;
-                GAME_PARAMS.ROTATION_SPEED = 0.03;
-            }
-        },
-        RAPID_FIRE: {
-            duration: 8000,
-            effect: () => {
-                GAME_PARAMS.ENEMY_SHOT_INTERVAL = 1500;
-            },
-            reset: () => {
-                GAME_PARAMS.ENEMY_SHOT_INTERVAL = 3000;
-            }
-        },
-        SHIELD: {
-            duration: 5000,
-            effect: (state) => {
-                state.setPlayerInvulnerable(true);
-            },
-            reset: (state) => {
-                state.setPlayerInvulnerable(false);
-            }
-        }
-    },
-    POWERUP_SPAWN_INTERVAL: 15000,
-    POWERUP_DURATION: 10000
 };

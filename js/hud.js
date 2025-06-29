@@ -12,18 +12,6 @@ export function createHUD() {
         state.setRadarContext(radarCanvas.getContext('2d'));
     }
 
-    // Create power-up display div (not in HTML)
-    const powerUpDiv = document.createElement('div');
-    powerUpDiv.id = 'powerUps';
-    powerUpDiv.style.position = 'fixed';
-    powerUpDiv.style.bottom = '10px';
-    powerUpDiv.style.left = '50%';
-    powerUpDiv.style.transform = 'translateX(-50%)';
-    powerUpDiv.style.color = '#00ff00';
-    powerUpDiv.style.fontFamily = 'monospace';
-    powerUpDiv.style.fontSize = '16px';
-    powerUpDiv.style.zIndex = '1000';
-    document.body.appendChild(powerUpDiv);
 
     // Set reference to existing game over screen
     const gameOverDiv = document.getElementById('gameOver');
@@ -146,18 +134,3 @@ function createWaveFlash() {
     }, 30);
 }
 
-export function updatePowerUpDisplay() {
-    const powerUpDiv = document.getElementById('powerUps');
-    if (!powerUpDiv) return;
-
-    const powerUpText = Array.from(state.activePowerUps).map(type => {
-        switch(type) {
-            case 'SPEED_BOOST': return '⚡ SPEED';
-            case 'RAPID_FIRE': return '🔥 RAPID FIRE';
-            case 'SHIELD': return '🛡️ SHIELD';
-            default: return type;
-        }
-    }).join(' | ');
-
-    powerUpDiv.innerHTML = powerUpText || '';
-}

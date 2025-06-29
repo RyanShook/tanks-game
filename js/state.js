@@ -18,9 +18,6 @@ export let handleKeyDown, handleKeyUp;
 export let labelRenderer;
 export let healthLabel;
 export let gameOverScreen;
-export let activePowerUps = new Set();
-export let powerUps = [];
-export let lastPowerUpSpawn = 0;
 
 export function setScene(s) { scene = s; }
 export function setCamera(c) { camera = c; }
@@ -38,7 +35,6 @@ export function setLabelRenderer(l) { labelRenderer = l; }
 export function setHealthLabel(h) { healthLabel = h; }
 export function setGameOverScreen(g) { gameOverScreen = g; }
 export function setPlayerHitCount(c) { playerHitCount = c; }
-export function setLastPowerUpSpawn(t) { lastPowerUpSpawn = t; }
 export function setExplosionPool(e) { explosionPool = e; }
 export function setProjectilePool(p) { projectilePool = p; }
 export function setScore(s) { score = s; }
