@@ -10,8 +10,10 @@ import { createPlayer, handleMovement } from './player.js';
 import { spawnWave } from './enemy.js';
 
 function init() {
+    console.log('🔧 Starting init()...');
     state.setScene(new THREE.Scene());
     state.scene.background = new THREE.Color(0x001100); // Very dark green instead of pure black
+    console.log('✅ Scene created');
 
     // Add basic lighting to help with visibility
     const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
@@ -36,16 +38,21 @@ function init() {
     grid.position.y = -0.5;
     state.scene.add(grid);
 
+    console.log('🏔️ Creating mountains...');
     createMountainRange();
+    console.log('🏗️ Creating obstacles...');
     createObstacles();
+    console.log('🚗 Creating player...');
     createPlayer();
+    console.log('📊 Creating HUD...');
     // Create HUD AFTER canvas so it appears on top
     createHUD();
 
+    console.log('👾 Spawning first wave...');
     spawnWave(state.currentWave);
 
     // Debug logging
-    console.log('Game initialized:');
+    console.log('✅ Game initialized:');
     console.log('- Scene children count:', state.scene.children.length);
     console.log('- Camera position:', state.camera.position);
     console.log('- Camera world position:', state.camera.getWorldPosition(new THREE.Vector3()));
@@ -75,40 +82,27 @@ function init() {
         state.keyboardState[event.code] = false;
     });
 
-    // Mouse controls for turret
-    let mouseX = 0;
-    let isMouseLocked = false;
-
+    // Simple mouse controls without pointer lock
     const handleMouseMove = (event) => {
-        if (!isMouseLocked || state.isGameOver) return;
+        if (state.isGameOver) return;
         
-        const sensitivity = 0.003;
+        const sensitivity = 0.005;
         const deltaX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
         state.tankTurret.rotation.y -= deltaX * sensitivity;
     };
 
     const handleMouseClick = () => {
-        if (!isMouseLocked) {
-            // Request pointer lock for mouse look
-            state.renderer.domElement.requestPointerLock();
-        } else {
-            const now = Date.now();
-            if (now - lastFireTime > fireRate) {
-                fireProjectile();
-                lastFireTime = now;
-            }
+        const now = Date.now();
+        if (now - lastFireTime > fireRate) {
+            fireProjectile();
+            lastFireTime = now;
         }
-    };
-
-    const handlePointerLockChange = () => {
-        isMouseLocked = document.pointerLockElement === state.renderer.domElement;
     };
 
     document.addEventListener('keydown', state.handleKeyDown);
     document.addEventListener('keyup', state.handleKeyUp);
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('click', handleMouseClick);
-    document.addEventListener('pointerlockchange', handlePointerLockChange);
     window.addEventListener('resize', onWindowResize, false);
 
     // Don't start sounds or animation until user clicks start button
@@ -338,10 +332,12 @@ function increaseDifficulty() {
 }
 
 function startGame() {
+    console.log('🚀 Starting game...');
     // Hide start screen
     const startScreen = document.getElementById('startScreen');
     if (startScreen) {
         startScreen.style.display = 'none';
+        console.log('✅ Start screen hidden');
     }
     
     // Initialize audio AFTER user interaction

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Minimal Test</title>
+    <style>
+        body { margin: 0; background: #001100; color: #00ff00; font-family: monospace; }
+        canvas { border: 1px solid #00ff00; }
+    </style>
+</head>
+<body>
+    <h1>Minimal Three.js Test</h1>
+    <div id="status">Loading...</div>
+    
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.159.0/build/three.module.js"
+        }
+      }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        
+        try {
+            document.getElementById('status').innerHTML = 'Creating scene...';
+            
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x001100);
+            
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+            camera.position.set(0, 2, 5);
+            
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(400, 300);
+            document.body.appendChild(renderer.domElement);
+            
+            // Create a simple wireframe cube
+            const geometry = new THREE.BoxGeometry(2, 2, 2);
+            const cube = new THREE.LineSegments(
+                new THREE.EdgesGeometry(geometry),
+                new THREE.LineBasicMaterial({ color: 0x00ff00 })
+            );
+            scene.add(cube);
+            
+            document.getElementById('status').innerHTML = 'Rendering...';
+            
+            function animate() {
+                requestAnimationFrame(animate);
+                cube.rotation.x += 0.01;
+                cube.rotation.y += 0.01;
+                renderer.render(scene, camera);
+            }
+            
+            animate();
+            document.getElementById('status').innerHTML = 'Success! Cube should be spinning.';
+            
+        } catch (error) {
+            document.getElementById('status').innerHTML = `Error: ${error.message}`;
+            console.error(error);
+        }
+    </script>
+</body>
+</html>
