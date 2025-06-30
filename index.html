@@ -59,6 +59,22 @@
         }
       }
     </script>
+    <script>
+        // Add error handling for debugging
+        window.addEventListener('error', function(e) {
+            document.body.innerHTML = '<div style="color:red;font-size:20px;padding:20px;">ERROR: ' + e.message + '<br>File: ' + e.filename + '<br>Line: ' + e.lineno + '</div>';
+        });
+        
+        // Check if start screen is visible
+        document.addEventListener('DOMContentLoaded', function() {
+            const startScreen = document.getElementById('startScreen');
+            if (startScreen) {
+                console.log('Start screen found, making it more visible...');
+                startScreen.style.background = 'rgba(255,0,0,0.8)';
+                startScreen.style.zIndex = '9999';
+            }
+        });
+    </script>
     <script type="module" src="js/main.js"></script>
   </body>
 </html>

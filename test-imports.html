@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Import Test</title>
+    <style>body { background: black; color: green; font-family: monospace; padding: 20px; }</style>
+</head>
+<body>
+    <h1>Testing Module Imports</h1>
+    <div id="log"></div>
+    
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.159.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.159.0/examples/jsm/"
+        }
+      }
+    </script>
+    
+    <script type="module">
+        const log = document.getElementById('log');
+        
+        async function testImport(name, path) {
+            try {
+                await import(path);
+                log.innerHTML += `✅ ${name} imported successfully<br>`;
+            } catch (err) {
+                log.innerHTML += `❌ ${name} failed: ${err.message}<br>`;
+                console.error(`Error importing ${name}:`, err);
+            }
+        }
+        
+        // Test each module
+        await testImport('THREE', 'three');
+        await testImport('constants', './js/constants.js');
+        await testImport('state', './js/state.js');
+        await testImport('utils', './js/utils.js');
+        await testImport('effects', './js/effects.js');
+        await testImport('sound', './js/sound.js');
+        await testImport('world', './js/world.js');
+        await testImport('hud', './js/hud.js');
+        await testImport('projectile', './js/projectile.js');
+        await testImport('player', './js/player.js');
+        await testImport('enemy', './js/enemy.js');
+        await testImport('main', './js/main.js');
+        
+        log.innerHTML += '<br><strong>Import test complete!</strong>';
+    </script>
+</body>
+</html>

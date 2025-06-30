@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CSS Test</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div id="startScreen">
+      <div id="startContainer">
+        <h1>BATTLEZONE</h1>
+        <div class="version">AUTHENTIC 1980 ARCADE RECREATION</div>
+        <div class="instructions">
+          <div>ENTER THE BATTLEFIELD</div>
+          <div class="controls">
+            <div>WASD - MOVE TANK</div>
+            <div>ARROW KEYS - ROTATE TURRET</div>
+            <div>SPACE - FIRE CANNON</div>
+            <div>MOUSE - LOOK AROUND</div>
+          </div>
+          <div class="objective">DESTROY ALL ENEMIES</div>
+        </div>
+        <button id="startButton">PRESS TO START</button>
+        <div class="highscore">HIGH SCORE: <span id="highScoreDisplay">0000</span></div>
+      </div>
+    </div>
+    
+    <script>
+        // Just test if button works
+        document.getElementById('startButton').onclick = () => {
+            alert('CSS and basic HTML working!');
+        };
+    </script>
+  </body>
+</html>
