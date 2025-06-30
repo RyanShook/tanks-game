@@ -10,10 +10,8 @@ import { createPlayer, handleMovement } from './player.js';
 import { spawnWave } from './enemy.js';
 
 function init() {
-    console.log('🔧 Starting init()...');
     state.setScene(new THREE.Scene());
     state.scene.background = new THREE.Color(0x001100); // Very dark green instead of pure black
-    console.log('✅ Scene created');
 
     // Add basic lighting to help with visibility
     const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
@@ -38,21 +36,16 @@ function init() {
     grid.position.y = -0.5;
     state.scene.add(grid);
 
-    console.log('🏔️ Creating mountains...');
     createMountainRange();
-    console.log('🏗️ Creating obstacles...');
     createObstacles();
-    console.log('🚗 Creating player...');
     createPlayer();
-    console.log('📊 Creating HUD...');
     // Create HUD AFTER canvas so it appears on top
     createHUD();
 
-    console.log('👾 Spawning first wave...');
     spawnWave(state.currentWave);
 
     // Debug logging
-    console.log('✅ Game initialized:');
+    console.log('Game initialized:');
     console.log('- Scene children count:', state.scene.children.length);
     console.log('- Camera position:', state.camera.position);
     console.log('- Camera world position:', state.camera.getWorldPosition(new THREE.Vector3()));
@@ -252,7 +245,7 @@ function resetGame() {
 
     // Spawn first wave
     spawnWave(state.currentWave);
-    updateHealthDisplay();
+    updateLivesDisplay();
     
     console.log('Game restarted');
 }
@@ -332,12 +325,10 @@ function increaseDifficulty() {
 }
 
 function startGame() {
-    console.log('🚀 Starting game...');
     // Hide start screen
     const startScreen = document.getElementById('startScreen');
     if (startScreen) {
         startScreen.style.display = 'none';
-        console.log('✅ Start screen hidden');
     }
     
     // Initialize audio AFTER user interaction
@@ -349,7 +340,7 @@ function startGame() {
     
     // Spawn first wave
     spawnWave(state.currentWave);
-    updateHealthDisplay();
+    updateLivesDisplay();
     
     // Start game loop
     animate();
