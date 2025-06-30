@@ -49,6 +49,8 @@ export function fireProjectile() {
     direction.applyQuaternion(state.tankBody.quaternion);
 
     projectile.userData.velocity = direction.multiplyScalar(GAME_PARAMS.PROJECTILE_SPEED);
+    // Add slight upward trajectory for authentic Battlezone arc
+    projectile.userData.velocity.y = 0.3;
     projectile.userData.distanceTraveled = 0;
     projectile.userData.creationTime = Date.now();
     projectile.userData.isEnemyProjectile = false;

@@ -32,6 +32,8 @@ export const GAME_PARAMS = {
     
     // World Settings
     WORLD_BOUNDS: 1000,
+    GRID_SIZE: 1000,
+    GRID_DIVISIONS: 100,
     MOUNTAIN_DISTANCE: 800,
     NUM_MOUNTAINS: 32,
     NUM_OBSTACLES: 20,

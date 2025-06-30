@@ -331,9 +331,9 @@ function checkWaveCompletion() {
 function increaseDifficulty() {
     // Authentic Battle Zone: Enemies get slightly faster and more aggressive
     if (state.currentWave % 3 === 0) {
-        GAME_PARAMS.ENEMY_SPEED = Math.min(GAME_PARAMS.ENEMY_SPEED + 0.01, 0.15);
-        GAME_PARAMS.ENEMY_SHOT_INTERVAL = Math.max(GAME_PARAMS.ENEMY_SHOT_INTERVAL - 200, 1500);
-        console.log(`Wave ${state.currentWave}: Difficulty increased - Speed: ${GAME_PARAMS.ENEMY_SPEED}, Shot interval: ${GAME_PARAMS.ENEMY_SHOT_INTERVAL}`);
+        GAME_PARAMS.TANK_SPEED = Math.min(GAME_PARAMS.TANK_SPEED + 0.01, 0.25);
+        GAME_PARAMS.TANK_SHOT_INTERVAL = Math.max(GAME_PARAMS.TANK_SHOT_INTERVAL - 200, 1000);
+        console.log(`Wave ${state.currentWave}: Difficulty increased - Speed: ${GAME_PARAMS.TANK_SPEED}, Shot interval: ${GAME_PARAMS.TANK_SHOT_INTERVAL}`);
     }
 }
 
