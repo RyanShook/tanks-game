@@ -3,7 +3,29 @@ import { GAME_PARAMS, VECTOR_GREEN } from './constants.js';
 import * as state from './state.js';
 import { playSound } from './sound.js';
 import { ObjectPool, checkCollision } from './utils.js';
-import { createExplosion, shakeCamera } from './effects.js';
+import { createExplosion, shakeCamera, createProjectileTrail, updateProjectileTrail, releaseProjectileTrail } from './effects.js';
+
+// Damage feedback functions
+function showDamageFlash() {
+    const damageFlash = document.querySelector('.damage-flash');
+    if (damageFlash) {
+        damageFlash.classList.add('active');
+        setTimeout(() => {
+            damageFlash.classList.remove('active');
+        }, 200);
+    }
+}
+
+function showInvulnerabilityIndicator(show) {
+    const indicator = document.querySelector('.invulnerable-indicator');
+    if (indicator) {
+        if (show) {
+            indicator.classList.add('active');
+        } else {
+            indicator.classList.remove('active');
+        }
+    }
+}
 
 export let projectilePool;
 
@@ -35,31 +57,53 @@ export function fireProjectile() {
 
     playSound('shoot');
 
-    const projectile = projectilePool.acquire();
-    projectile.visible = true;
+    // Fire multiple projectiles if dual cannon is unlocked
+    const numProjectiles = state.weaponUpgrades.dualCannon ? 2 : 1;
+    
+    for (let i = 0; i < numProjectiles; i++) {
+        const projectile = projectilePool.acquire();
+        projectile.visible = true;
 
-    // Get cannon world position and direction
-    const cannonWorldPos = new THREE.Vector3();
-    state.tankCannon.getWorldPosition(cannonWorldPos);
-    projectile.position.copy(cannonWorldPos);
+        // Get cannon world position and direction
+        const cannonWorldPos = new THREE.Vector3();
+        state.tankCannon.getWorldPosition(cannonWorldPos);
+        
+        // Offset for dual cannons
+        if (numProjectiles > 1) {
+            const offset = (i === 0) ? -0.5 : 0.5;
+            cannonWorldPos.x += offset;
+        }
+        
+        projectile.position.copy(cannonWorldPos);
 
-    // Use turret rotation for firing direction (more accurate)
-    const direction = new THREE.Vector3(0, 0, 1);
-    direction.applyQuaternion(state.tankTurret.quaternion);
-    direction.applyQuaternion(state.tankBody.quaternion);
+        // Use turret rotation for firing direction (more accurate)
+        const direction = new THREE.Vector3(0, 0, 1);
+        direction.applyQuaternion(state.tankTurret.quaternion);
+        direction.applyQuaternion(state.tankBody.quaternion);
 
-    projectile.userData.velocity = direction.multiplyScalar(GAME_PARAMS.PROJECTILE_SPEED);
-    // Add slight upward trajectory for authentic Battlezone arc
-    projectile.userData.velocity.y = 0.3;
-    projectile.userData.distanceTraveled = 0;
-    projectile.userData.creationTime = Date.now();
-    projectile.userData.isEnemyProjectile = false;
+        // Power shot increases speed and damage
+        const speed = state.weaponUpgrades.powerShot ? GAME_PARAMS.PROJECTILE_SPEED * 1.5 : GAME_PARAMS.PROJECTILE_SPEED;
+        projectile.userData.velocity = direction.multiplyScalar(speed);
+        
+        // Add slight upward trajectory for authentic Battlezone arc
+        projectile.userData.velocity.y = 0.3;
+        projectile.userData.distanceTraveled = 0;
+        projectile.userData.creationTime = Date.now();
+        projectile.userData.isEnemyProjectile = false;
+        projectile.userData.isPowerShot = state.weaponUpgrades.powerShot;
+        
+        // Create trail for this projectile
+        projectile.userData.trail = createProjectileTrail(projectile);
 
-    state.projectiles.push(projectile);
+        state.projectiles.push(projectile);
 
-    // Dramatic muzzle flash like original Battlezone
-    createExplosion(cannonWorldPos, VECTOR_GREEN, 1.5);
-    shakeCamera(0.8, 300); // Strong shake when firing
+        // Dramatic muzzle flash like original Battlezone
+        const flashSize = state.weaponUpgrades.powerShot ? 2.0 : 1.5;
+        createExplosion(cannonWorldPos, VECTOR_GREEN, flashSize);
+    }
+    
+    const shakeIntensity = state.weaponUpgrades.powerShot ? 1.2 : 0.8;
+    shakeCamera(shakeIntensity, 300);
 
     // Cannon recoil animation
     state.tankCannon.rotation.x = -0.15;
@@ -77,15 +121,28 @@ export function updateProjectiles(gameOver) {
         
         projectile.position.add(projectile.userData.velocity);
         projectile.userData.distanceTraveled += projectile.userData.velocity.length();
+        
+        // Update projectile trail
+        if (projectile.userData.trail) {
+            updateProjectileTrail(projectile.userData.trail, projectile);
+        }
 
         if (projectile.position.y < 0) {
             createExplosion(projectile.position, projectile.userData.isEnemyProjectile ? 0xff0000 : VECTOR_GREEN, 0.5);
+            // Clean up trail before releasing projectile
+            if (projectile.userData.trail) {
+                releaseProjectileTrail(projectile.userData.trail);
+            }
             projectilePool.release(projectile);
             state.projectiles.splice(i, 1);
             continue;
         }
 
         if (projectile.userData.distanceTraveled > GAME_PARAMS.PROJECTILE_MAX_DISTANCE) {
+            // Clean up trail before releasing projectile
+            if (projectile.userData.trail) {
+                releaseProjectileTrail(projectile.userData.trail);
+            }
             projectilePool.release(projectile);
             state.projectiles.splice(i, 1);
             continue;
@@ -97,18 +154,29 @@ export function updateProjectiles(gameOver) {
                     playSound('hit');
                     state.lives--;
                     
+                    // Show damage flash effect
+                    showDamageFlash();
+                    
                     // Authentic Battlezone: One hit = one life lost
                     if (state.lives <= 0) {
                         gameOver();
                     } else {
                         // Brief invulnerability after hit
                         state.setPlayerInvulnerable(true);
-                        setTimeout(() => { state.setPlayerInvulnerable(false); }, 1500);
+                        showInvulnerabilityIndicator(true);
+                        setTimeout(() => { 
+                            state.setPlayerInvulnerable(false); 
+                            showInvulnerabilityIndicator(false);
+                        }, 1500);
                         
                         // Dramatic hit feedback like original Battlezone
                         shakeCamera(2.0, 800);
                         createExplosion(state.tankBody.position, 0xff4444, 4.0);
                     }
+                }
+                // Clean up trail before releasing projectile
+                if (projectile.userData.trail) {
+                    releaseProjectileTrail(projectile.userData.trail);
                 }
                 projectilePool.release(projectile);
                 state.projectiles.splice(i, 1);
@@ -120,6 +188,10 @@ export function updateProjectiles(gameOver) {
                 if (!enemyTank.isDestroyed && checkCollision(projectile, enemyTank.body, 1.5)) {
                     playSound('hit');
                     enemyTank.takeDamage(1); // One hit destroys tank in authentic Battle Zone
+                    // Clean up trail before releasing projectile
+                    if (projectile.userData.trail) {
+                        releaseProjectileTrail(projectile.userData.trail);
+                    }
                     projectilePool.release(projectile);
                     state.projectiles.splice(i, 1);
                     createExplosion(projectile.position, VECTOR_GREEN, 3.0);
