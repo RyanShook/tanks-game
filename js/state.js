@@ -1,10 +1,12 @@
+import { GAME_PARAMS } from './constants.js';
+
 export let scene, camera, renderer;
 export let tankBody, tankTurret, tankCannon;
 export let enemyTanks = [];
 // Removed enemySpaceships - not authentic to Battle Zone
 export let obstacles = [];
 export let projectiles = [];
-export let projectilePool, explosionPool;
+export let projectilePool, explosionPool, trailPool;
 export let score = 0;
 export let lives = 3;
 export let lastBonusLifeScore = 0;
@@ -15,6 +17,12 @@ export let currentWave = 1;
 export let enemiesRemaining = 0;
 export const keyboardState = {};
 export let handleKeyDown, handleKeyUp;
+// Weapon upgrade system
+export let weaponUpgrades = {
+    rapidFire: false,
+    dualCannon: false,
+    powerShot: false
+};
 export let labelRenderer;
 // Removed healthLabel - not needed in authentic Battle Zone
 export let gameOverScreen;
@@ -36,6 +44,7 @@ export function setLabelRenderer(l) { labelRenderer = l; }
 export function setGameOverScreen(g) { gameOverScreen = g; }
 export function setExplosionPool(e) { explosionPool = e; }
 export function setProjectilePool(p) { projectilePool = p; }
+export function setTrailPool(t) { trailPool = t; }
 export function setScore(s) { 
     score = s; 
     // Check for bonus life every 15,000 points
@@ -43,6 +52,35 @@ export function setScore(s) {
         lives++;
         lastBonusLifeScore = score;
     }
+    checkWeaponUpgrades();
+}
+
+function checkWeaponUpgrades() {
+    const { RAPID_FIRE_THRESHOLD, DUAL_CANNON_THRESHOLD, POWER_SHOT_THRESHOLD } = GAME_PARAMS;
+    
+    if (score >= RAPID_FIRE_THRESHOLD && !weaponUpgrades.rapidFire) {
+        weaponUpgrades.rapidFire = true;
+        showUpgradeNotification("RAPID FIRE UNLOCKED!");
+    }
+    if (score >= DUAL_CANNON_THRESHOLD && !weaponUpgrades.dualCannon) {
+        weaponUpgrades.dualCannon = true;
+        showUpgradeNotification("DUAL CANNONS UNLOCKED!");
+    }
+    if (score >= POWER_SHOT_THRESHOLD && !weaponUpgrades.powerShot) {
+        weaponUpgrades.powerShot = true;
+        showUpgradeNotification("POWER SHOT UNLOCKED!");
+    }
+}
+
+function showUpgradeNotification(message) {
+    const notification = document.createElement('div');
+    notification.className = 'upgrade-notification';
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 3000);
 }
 export function setLives(l) { lives = l; }
 export function setLastBonusLifeScore(s) { lastBonusLifeScore = s; }

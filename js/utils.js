@@ -23,7 +23,22 @@ export class ObjectPool {
         const obj = this.objects.find(o => o.object === object);
         if (obj) {
             obj.inUse = false;
+            
+            // Properly reset object state to prevent memory leaks
             object.visible = false;
+            object.position.set(0, 0, 0);
+            object.rotation.set(0, 0, 0);
+            object.scale.set(1, 1, 1);
+            
+            // Clear any custom properties that might hold references
+            if (object.userData) {
+                object.userData = {};
+            }
+            
+            // Remove from parent if attached
+            if (object.parent) {
+                object.parent.remove(object);
+            }
         }
     }
 }

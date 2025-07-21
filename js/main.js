@@ -57,13 +57,14 @@ function init() {
 
     // Authentic Battlezone firing control with cooldown
     let lastFireTime = 0;
-    const fireRate = GAME_PARAMS.FIRE_COOLDOWN;
 
     state.setHandleKeyDown((event) => {
         state.keyboardState[event.code] = true;
         if (event.code === 'Space') {
             event.preventDefault();
             const now = Date.now();
+            // Rapid fire upgrade reduces cooldown
+            const fireRate = state.weaponUpgrades.rapidFire ? GAME_PARAMS.FIRE_COOLDOWN * 0.5 : GAME_PARAMS.FIRE_COOLDOWN;
             if (now - lastFireTime > fireRate) {
                 fireProjectile();
                 lastFireTime = now;
@@ -86,6 +87,8 @@ function init() {
 
     const handleMouseClick = () => {
         const now = Date.now();
+        // Rapid fire upgrade reduces cooldown
+        const fireRate = state.weaponUpgrades.rapidFire ? GAME_PARAMS.FIRE_COOLDOWN * 0.5 : GAME_PARAMS.FIRE_COOLDOWN;
         if (now - lastFireTime > fireRate) {
             fireProjectile();
             lastFireTime = now;
@@ -114,7 +117,8 @@ function animate() {
         if (!state.isGameOver) {
             handleMovement();
             updateProjectiles(gameOver);
-            state.enemyTanks.forEach(enemy => enemy.update());
+            // Filter out destroyed enemies before updating for better performance
+            state.enemyTanks.filter(enemy => !enemy.isDestroyed).forEach(enemy => enemy.update());
             updateRadar();
             updateWaveDisplay();
             checkWaveCompletion();
@@ -285,6 +289,11 @@ function resetGameState() {
     state.setLives(GAME_PARAMS.STARTING_LIVES);
     state.setLastBonusLifeScore(0);
     state.setEnemiesRemaining(0);
+    
+    // Reset weapon upgrades
+    state.weaponUpgrades.rapidFire = false;
+    state.weaponUpgrades.dualCannon = false;
+    state.weaponUpgrades.powerShot = false;
 }
 
 function checkWaveCompletion() {

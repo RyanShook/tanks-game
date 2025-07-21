@@ -4,6 +4,7 @@ import { ObjectPool } from './utils.js';
 import * as state from './state.js';
 
 let explosionPool;
+let trailPool;
 
 export function initEffects(scene) {
     explosionPool = new ObjectPool(() => {
@@ -21,8 +22,27 @@ export function initEffects(scene) {
         return particles;
     });
     
-    // Set the explosion pool in state for access by other modules
+    // Initialize projectile trail pool
+    trailPool = new ObjectPool(() => {
+        const points = [];
+        for (let i = 0; i < 10; i++) {
+            points.push(new THREE.Vector3());
+        }
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        const material = new THREE.LineBasicMaterial({ 
+            color: 0x00ff00, 
+            transparent: true,
+            opacity: 0.6
+        });
+        const trail = new THREE.Line(geometry, material);
+        trail.visible = false;
+        scene.add(trail);
+        return trail;
+    });
+    
+    // Set the pools in state for access by other modules
     state.setExplosionPool(explosionPool);
+    state.setTrailPool(trailPool);
 }
 
 export function createExplosion(position, color, size = 1) {
@@ -148,4 +168,55 @@ export function createEnhancedExplosion(position, color, size = 1) {
     }
     
     animateEnhancedExplosion();
+}
+
+export function createProjectileTrail(projectile) {
+    if (!trailPool || !projectile) return null;
+    
+    const trail = trailPool.acquire();
+    trail.visible = true;
+    trail.material.color.set(projectile.userData.isEnemyProjectile ? 0xff0000 : 0x00ff00);
+    
+    // Initialize trail points array
+    trail.userData.points = [];
+    for (let i = 0; i < 10; i++) {
+        trail.userData.points.push(projectile.position.clone());
+    }
+    
+    return trail;
+}
+
+export function updateProjectileTrail(trail, projectile) {
+    if (!trail || !projectile || !trail.userData.points) return;
+    
+    // Add current position to front of trail
+    trail.userData.points.unshift(projectile.position.clone());
+    
+    // Limit trail length
+    if (trail.userData.points.length > 10) {
+        trail.userData.points.pop();
+    }
+    
+    // Update trail geometry
+    const geometry = trail.geometry;
+    const positions = geometry.attributes.position;
+    
+    for (let i = 0; i < trail.userData.points.length; i++) {
+        const point = trail.userData.points[i];
+        positions.setXYZ(i, point.x, point.y, point.z);
+    }
+    
+    positions.needsUpdate = true;
+    
+    // Fade trail opacity based on distance from projectile
+    const opacity = Math.max(0.2, 1.0 - (trail.userData.points.length * 0.08));
+    trail.material.opacity = opacity;
+}
+
+export function releaseProjectileTrail(trail) {
+    if (!trail || !trailPool) return;
+    
+    trail.visible = false;
+    trail.userData.points = null;
+    trailPool.release(trail);
 }
