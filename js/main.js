@@ -64,7 +64,7 @@ function init() {
             event.preventDefault();
             const now = Date.now();
             // Rapid fire upgrade reduces cooldown
-            const fireRate = state.weaponUpgrades.rapidFire ? GAME_PARAMS.FIRE_COOLDOWN * 0.5 : GAME_PARAMS.FIRE_COOLDOWN;
+            const fireRate = GAME_PARAMS.FIRE_COOLDOWN;
             if (now - lastFireTime > fireRate) {
                 fireProjectile();
                 lastFireTime = now;
@@ -88,7 +88,7 @@ function init() {
     const handleMouseClick = () => {
         const now = Date.now();
         // Rapid fire upgrade reduces cooldown
-        const fireRate = state.weaponUpgrades.rapidFire ? GAME_PARAMS.FIRE_COOLDOWN * 0.5 : GAME_PARAMS.FIRE_COOLDOWN;
+        const fireRate = GAME_PARAMS.FIRE_COOLDOWN;
         if (now - lastFireTime > fireRate) {
             fireProjectile();
             lastFireTime = now;
@@ -209,7 +209,7 @@ function updateGameOverStats() {
     }
     if (tanksDestroyedElement) {
         // Estimate enemies destroyed based on minimum score per enemy
-        tanksDestroyedElement.textContent = Math.floor(state.score / GAME_PARAMS.TANK_SCORE).toString();
+        tanksDestroyedElement.textContent = state.tanksDestroyed.toString();
     }
 }
 
@@ -287,13 +287,12 @@ function resetGameState() {
     state.setCurrentWave(1);
     state.setScore(0);
     state.setLives(GAME_PARAMS.STARTING_LIVES);
+    state.setTanksDestroyed(0);
     state.setLastBonusLifeScore(0);
     state.setEnemiesRemaining(0);
     
     // Reset weapon upgrades
-    state.weaponUpgrades.rapidFire = false;
-    state.weaponUpgrades.dualCannon = false;
-    state.weaponUpgrades.powerShot = false;
+
 }
 
 function checkWaveCompletion() {

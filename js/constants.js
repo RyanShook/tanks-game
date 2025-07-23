@@ -22,13 +22,8 @@ export const GAME_PARAMS = {
     
     // Enemy Settings - More aggressive like original
     TANK_SPEED: 0.15,
-    MISSILE_SPEED: 0.25,
-    SUPERTANK_SPEED: 0.18,
-    UFO_SPEED: 0.08,
     
     TANK_SHOT_INTERVAL: 2000,
-    MISSILE_SHOT_INTERVAL: 800,
-    SUPERTANK_SHOT_INTERVAL: 1200,
     
     // World Settings
     WORLD_BOUNDS: 1000,
@@ -40,18 +35,7 @@ export const GAME_PARAMS = {
     
     // Authentic Battlezone Scoring
     TANK_SCORE: 1000,
-    MISSILE_SCORE: 2000,
-    SUPERTANK_SCORE: 3000,
-    UFO_SCORE: 5000,
     
     // Enemy Spawn Rates
-    TANK_SPAWN_CHANCE: 0.6,
-    MISSILE_SPAWN_CHANCE: 0.25,
-    SUPERTANK_SPAWN_CHANCE: 0.1,
-    UFO_SPAWN_CHANCE: 0.05,
-    
-    // Weapon Upgrade Thresholds
-    RAPID_FIRE_THRESHOLD: 10000,
-    DUAL_CANNON_THRESHOLD: 25000,
-    POWER_SHOT_THRESHOLD: 50000,
+    TANK_SPAWN_CHANCE: 1.0,
 };
