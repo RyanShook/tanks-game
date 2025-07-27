@@ -122,7 +122,7 @@ class EnemyTank {
     takeDamage() {
         if (!this.isDestroyed) {
             this.destroy();
-            state.score += this.score;
+            state.setScore(state.score + this.score);
             state.setTanksDestroyed(state.tanksDestroyed + 1);
             state.setEnemiesRemaining(state.enemiesRemaining - 1);
         }
