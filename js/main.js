@@ -302,7 +302,7 @@ function checkWaveCompletion() {
         
         // Calculate wave completion bonus
         const waveBonus = completedWave * 50;
-        state.score += waveBonus;
+        state.setScore(state.score + waveBonus);
         
         // Show wave completion message
         if (typeof showWaveCompletionMessage === 'function') {

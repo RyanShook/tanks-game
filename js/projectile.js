@@ -152,7 +152,7 @@ export function updateProjectiles(gameOver) {
             if (checkCollision(projectile, state.tankBody, 1.5)) {
                 if (!state.playerInvulnerable) {
                     playSound('hit');
-                    state.lives--;
+                    state.setLives(state.lives - 1);
                     
                     // Show damage flash effect
                     showDamageFlash();
