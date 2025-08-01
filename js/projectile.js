@@ -53,12 +53,14 @@ export function initProjectiles(scene) {
 }
 
 export function fireProjectile() {
-    if (state.isGameOver || !projectilePool) return;
+    if (state.isGameOver || !projectilePool) {
+        return;
+    }
 
     playSound('shoot');
 
-    // Fire multiple projectiles if dual cannon is unlocked
-    const numProjectiles = state.weaponUpgrades.dualCannon ? 2 : 1;
+    // Authentic Battle Zone - single cannon only
+    const numProjectiles = 1;
     
     for (let i = 0; i < numProjectiles; i++) {
         const projectile = projectilePool.acquire();
@@ -66,14 +68,11 @@ export function fireProjectile() {
 
         // Get cannon world position and direction
         const cannonWorldPos = new THREE.Vector3();
-        state.tankCannon.getWorldPosition(cannonWorldPos);
-        
-        // Offset for dual cannons
-        if (numProjectiles > 1) {
-            const offset = (i === 0) ? -0.5 : 0.5;
-            cannonWorldPos.x += offset;
+        if (!state.tankCannon) {
+            return;
         }
         
+        state.tankCannon.getWorldPosition(cannonWorldPos);
         projectile.position.copy(cannonWorldPos);
 
         // Use turret rotation for firing direction (more accurate)
@@ -81,29 +80,26 @@ export function fireProjectile() {
         direction.applyQuaternion(state.tankTurret.quaternion);
         direction.applyQuaternion(state.tankBody.quaternion);
 
-        // Power shot increases speed and damage
-        const speed = state.weaponUpgrades.powerShot ? GAME_PARAMS.PROJECTILE_SPEED * 1.5 : GAME_PARAMS.PROJECTILE_SPEED;
-        projectile.userData.velocity = direction.multiplyScalar(speed);
+        // Authentic Battle Zone projectile speed
+        projectile.userData.velocity = direction.multiplyScalar(GAME_PARAMS.PROJECTILE_SPEED);
         
         // Add slight upward trajectory for authentic Battlezone arc
         projectile.userData.velocity.y = 0.3;
         projectile.userData.distanceTraveled = 0;
         projectile.userData.creationTime = Date.now();
         projectile.userData.isEnemyProjectile = false;
-        projectile.userData.isPowerShot = state.weaponUpgrades.powerShot;
         
         // Create trail for this projectile
         projectile.userData.trail = createProjectileTrail(projectile);
 
         state.projectiles.push(projectile);
 
-        // Dramatic muzzle flash like original Battlezone
-        const flashSize = state.weaponUpgrades.powerShot ? 2.0 : 1.5;
-        createExplosion(cannonWorldPos, VECTOR_GREEN, flashSize);
+        // Muzzle flash like original Battlezone
+        createExplosion(cannonWorldPos, VECTOR_GREEN, 1.5);
     }
     
-    const shakeIntensity = state.weaponUpgrades.powerShot ? 1.2 : 0.8;
-    shakeCamera(shakeIntensity, 300);
+    // Authentic Battle Zone camera shake
+    shakeCamera(0.8, 300);
 
     // Cannon recoil animation
     state.tankCannon.rotation.x = -0.15;

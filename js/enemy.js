@@ -135,20 +135,21 @@ class EnemyTank {
     }
 }
 
-// Wave spawning system
+// Wave spawning system - Authentic Battle Zone approach
 export function spawnWave(waveNumber) {
     // Clear existing enemies
     state.setEnemiesRemaining(0);
     state.enemyTanks.forEach(enemy => state.scene.remove(enemy.body));
     state.enemyTanks.length = 0;
     
-    // Calculate enemy count based on wave - authentic Battle Zone progression
-    const baseEnemies = Math.min(2 + Math.floor(waveNumber / 2), 8);
-    const spawnRadius = 100 + waveNumber * 10;
+    // Authentic Battle Zone: Fewer enemies but more challenging
+    // Original had only 1-2 enemies at a time for focus
+    const baseEnemies = Math.min(1 + Math.floor(waveNumber / 3), 3);
+    const spawnRadius = 150 + waveNumber * 15;
     
     for (let i = 0; i < baseEnemies; i++) {
         const angle = (i / baseEnemies) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
-        const distance = spawnRadius + (Math.random() - 0.5) * 40;
+        const distance = spawnRadius + (Math.random() - 0.5) * 60;
         const x = Math.cos(angle) * distance;
         const z = Math.sin(angle) * distance;
         const position = new THREE.Vector3(x, 0, z);
@@ -162,16 +163,16 @@ export function spawnWave(waveNumber) {
             enemy = new EnemyTank(state.scene, position);
         } else if (waveNumber === 2) {
             // Wave 2: Tanks and occasional missile
-            if (rand < 0.2) {
+            if (rand < 0.3) {
                 enemy = new EnemyMissile(state.scene, position);
             } else {
                 enemy = new EnemyTank(state.scene, position);
             }
         } else if (waveNumber >= 3) {
             // Wave 3+: All enemy types
-            if (rand < 0.1 && waveNumber >= 4) {
+            if (rand < 0.15 && waveNumber >= 4) {
                 enemy = new EnemySuperTank(state.scene, position);
-            } else if (rand < 0.3) {
+            } else if (rand < 0.4) {
                 enemy = new EnemyMissile(state.scene, position);
             } else {
                 enemy = new EnemyTank(state.scene, position);
@@ -180,6 +181,19 @@ export function spawnWave(waveNumber) {
         
         state.enemyTanks.push(enemy);
         state.setEnemiesRemaining(state.enemiesRemaining + 1);
+    }
+    
+    // Occasionally spawn a UFO for bonus points (doesn't count toward wave completion)
+    if (Math.random() < 0.2 && waveNumber >= 2) {
+        const ufoAngle = Math.random() * Math.PI * 2;
+        const ufoDistance = 200 + Math.random() * 100;
+        const ufoX = Math.cos(ufoAngle) * ufoDistance;
+        const ufoZ = Math.sin(ufoAngle) * ufoDistance;
+        const ufoPosition = new THREE.Vector3(ufoX, 0, ufoZ);
+        
+        const ufo = new EnemyUFO(state.scene, ufoPosition);
+        state.enemyTanks.push(ufo);
+        // UFO doesn't count toward enemiesRemaining for wave completion
     }
 }
 
@@ -384,4 +398,87 @@ class EnemySuperTank {
     }
 }
 
-export { EnemyTank, EnemyMissile, EnemySuperTank };
+// Authentic Battlezone UFO (Flying Saucer)
+class EnemyUFO {
+    constructor(scene, position) {
+        this.type = 'ufo';
+        this.scene = scene;
+        this.isDestroyed = false;
+        this.score = GAME_PARAMS.UFO_SCORE;
+        this.speed = GAME_PARAMS.TANK_SPEED * 0.8;
+        this.hoverHeight = 15 + Math.random() * 10;
+        this.hoverDirection = (Math.random() - 0.5) * 2;
+        
+        this.createUFOGeometry(position);
+        scene.add(this.body);
+    }
+    
+    createUFOGeometry(position) {
+        // Classic flying saucer shape
+        const saucerGroup = new THREE.Group();
+        
+        // Saucer body (flattened sphere)
+        const bodyGeometry = new THREE.SphereGeometry(3, 8, 4);
+        bodyGeometry.scale(1, 0.3, 1);
+        this.body = new THREE.LineSegments(
+            new THREE.EdgesGeometry(bodyGeometry),
+            new THREE.LineBasicMaterial({ color: VECTOR_YELLOW })
+        );
+        
+        // UFO dome
+        const domeGeometry = new THREE.SphereGeometry(1.5, 6, 4);
+        const dome = new THREE.LineSegments(
+            new THREE.EdgesGeometry(domeGeometry),
+            new THREE.LineBasicMaterial({ color: VECTOR_YELLOW })
+        );
+        dome.position.y = 0.5;
+        this.body.add(dome);
+        
+        this.body.position.copy(position);
+        this.body.position.y = this.hoverHeight;
+    }
+    
+    update() {
+        if (this.isDestroyed) return;
+        
+        // UFO behavior: Slowly drift across the battlefield, doesn't attack
+        // Authentic Battle Zone: UFO moves in straight line and can be shot for bonus points
+        this.body.position.x += this.hoverDirection * this.speed;
+        this.body.position.z += (Math.random() - 0.5) * this.speed * 0.3;
+        
+        // Keep within bounds, reverse direction if needed
+        if (Math.abs(this.body.position.x) > GAME_PARAMS.WORLD_BOUNDS * 0.8) {
+            this.hoverDirection *= -1;
+        }
+        
+        // Gentle floating motion
+        this.body.position.y = this.hoverHeight + Math.sin(Date.now() * 0.001) * 2;
+        this.body.rotation.y += 0.01;
+        
+        // Remove UFO if it gets too far away
+        const distanceFromCenter = Math.sqrt(
+            this.body.position.x * this.body.position.x + 
+            this.body.position.z * this.body.position.z
+        );
+        if (distanceFromCenter > GAME_PARAMS.WORLD_BOUNDS) {
+            this.destroy();
+        }
+    }
+    
+    takeDamage() {
+        if (!this.isDestroyed) {
+            this.destroy();
+            state.setScore(state.score + this.score);
+            state.setTanksDestroyed(state.tanksDestroyed + 1);
+            // UFO doesn't count towards wave completion
+        }
+    }
+    
+    destroy() {
+        this.isDestroyed = true;
+        createExplosion(this.body.position, VECTOR_YELLOW, 3);
+        this.scene.remove(this.body);
+    }
+}
+
+export { EnemyTank, EnemyMissile, EnemySuperTank, EnemyUFO };

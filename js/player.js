@@ -125,9 +125,15 @@ export function handleMovement() {
         state.tankBody.position.copy(previousPosition);
     }
 
-    // Keep player within authentic Battle Zone bounds
-    const maxDistance = GAME_PARAMS.WORLD_BOUNDS * 0.8;
+    // Keep player within authentic Battle Zone bounds - stricter boundaries
+    const maxDistance = GAME_PARAMS.WORLD_BOUNDS * 0.7;
     state.tankBody.position.x = THREE.MathUtils.clamp(state.tankBody.position.x, -maxDistance, maxDistance);
     state.tankBody.position.z = THREE.MathUtils.clamp(state.tankBody.position.z, -maxDistance, maxDistance);
+    
+    // Stop at boundary with feedback
+    if (Math.abs(state.tankBody.position.x) >= maxDistance || Math.abs(state.tankBody.position.z) >= maxDistance) {
+        // Revert to previous position if we hit boundary
+        state.tankBody.position.copy(previousPosition);
+    }
 }
 
