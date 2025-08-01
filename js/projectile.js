@@ -31,19 +31,17 @@ export let projectilePool;
 
 export function initProjectiles(scene) {
     projectilePool = new ObjectPool(() => {
-        // Bold, visible projectiles like original Battlezone
-        const projectileGeometry = new THREE.CylinderGeometry(0.3, 0.3, 2.0, 6);
+        // Simple, highly visible projectile like original Battlezone
+        const projectileGeometry = new THREE.BoxGeometry(0.2, 0.2, 1.5);
         const projectile = new THREE.LineSegments(
             new THREE.EdgesGeometry(projectileGeometry),
             new THREE.LineBasicMaterial({ 
                 color: VECTOR_GREEN,
-                linewidth: 3,
-                transparent: false,
-                opacity: 1.0
+                linewidth: 2
             })
         );
         projectile.visible = false;
-        projectile.rotation.x = Math.PI / 2; // Orient vertically for better visibility
+        projectile.position.set(0, 0, 0);
         scene.add(projectile);
         return projectile;
     });
@@ -57,46 +55,41 @@ export function fireProjectile() {
         return;
     }
 
+    // AUTHENTIC BATTLE ZONE: Only one projectile at a time!
+    // Check if we already have a player projectile in flight
+    const hasPlayerProjectile = state.projectiles.some(p => !p.userData.isEnemyProjectile);
+    if (hasPlayerProjectile) {
+        return; // Cannot fire until current projectile is gone
+    }
+
     playSound('shoot');
 
-    // Authentic Battle Zone - single cannon only
-    const numProjectiles = 1;
+    const projectile = projectilePool.acquire();
+    projectile.visible = true;
+
+    // Get firing position from camera/turret center (first-person view)
+    const cameraWorldPos = new THREE.Vector3();
+    state.camera.getWorldPosition(cameraWorldPos);
+    projectile.position.copy(cameraWorldPos);
     
-    for (let i = 0; i < numProjectiles; i++) {
-        const projectile = projectilePool.acquire();
-        projectile.visible = true;
+    // Move projectile slightly forward from camera
+    projectile.position.y += 0.2; // Slight elevation
+    
+    // Get firing direction from camera/turret rotation
+    const direction = new THREE.Vector3(0, 0, -1); // Forward direction
+    direction.applyQuaternion(state.camera.quaternion);
+    
+    // Authentic Battle Zone projectile properties
+    projectile.userData.velocity = direction.multiplyScalar(GAME_PARAMS.PROJECTILE_SPEED);
+    projectile.userData.distanceTraveled = 0;
+    projectile.userData.isEnemyProjectile = false;
+    
+    // No trail for authentic Battle Zone - projectiles were simple lines
+    projectile.userData.trail = null;
 
-        // Get cannon world position and direction
-        const cannonWorldPos = new THREE.Vector3();
-        if (!state.tankCannon) {
-            return;
-        }
-        
-        state.tankCannon.getWorldPosition(cannonWorldPos);
-        projectile.position.copy(cannonWorldPos);
-
-        // Use turret rotation for firing direction (more accurate)
-        const direction = new THREE.Vector3(0, 0, 1);
-        direction.applyQuaternion(state.tankTurret.quaternion);
-        direction.applyQuaternion(state.tankBody.quaternion);
-
-        // Authentic Battle Zone projectile speed
-        projectile.userData.velocity = direction.multiplyScalar(GAME_PARAMS.PROJECTILE_SPEED);
-        
-        // Add slight upward trajectory for authentic Battlezone arc
-        projectile.userData.velocity.y = 0.3;
-        projectile.userData.distanceTraveled = 0;
-        projectile.userData.creationTime = Date.now();
-        projectile.userData.isEnemyProjectile = false;
-        
-        // Create trail for this projectile
-        projectile.userData.trail = createProjectileTrail(projectile);
-
-        state.projectiles.push(projectile);
-
-        // Muzzle flash like original Battlezone
-        createExplosion(cannonWorldPos, VECTOR_GREEN, 1.5);
-    }
+    state.projectiles.push(projectile);
+    
+    console.log('Fired projectile from position:', projectile.position, 'direction:', direction);
     
     // Authentic Battle Zone camera shake
     shakeCamera(0.8, 300);
@@ -110,91 +103,62 @@ export function updateProjectiles(gameOver) {
     for (let i = state.projectiles.length - 1; i >= 0; i--) {
         const projectile = state.projectiles[i];
         
-        // Add gravity for authentic Battlezone projectile arc
-        if (!projectile.userData.isEnemyProjectile) {
-            projectile.userData.velocity.y -= GAME_PARAMS.PROJECTILE_GRAVITY;
-        }
-        
+        // Move projectile forward
         projectile.position.add(projectile.userData.velocity);
         projectile.userData.distanceTraveled += projectile.userData.velocity.length();
-        
-        // Update projectile trail
-        if (projectile.userData.trail) {
-            updateProjectileTrail(projectile.userData.trail, projectile);
-        }
 
-        if (projectile.position.y < 0) {
-            createExplosion(projectile.position, projectile.userData.isEnemyProjectile ? 0xff0000 : VECTOR_GREEN, 0.5);
-            // Clean up trail before releasing projectile
-            if (projectile.userData.trail) {
-                releaseProjectileTrail(projectile.userData.trail);
-            }
+        // Check if projectile hit ground or went too far
+        if (projectile.position.y < -2 || projectile.userData.distanceTraveled > GAME_PARAMS.PROJECTILE_MAX_DISTANCE) {
+            createExplosion(projectile.position, projectile.userData.isEnemyProjectile ? 0xff0000 : VECTOR_GREEN, 1.0);
             projectilePool.release(projectile);
             state.projectiles.splice(i, 1);
-            continue;
-        }
-
-        if (projectile.userData.distanceTraveled > GAME_PARAMS.PROJECTILE_MAX_DISTANCE) {
-            // Clean up trail before releasing projectile
-            if (projectile.userData.trail) {
-                releaseProjectileTrail(projectile.userData.trail);
-            }
-            projectilePool.release(projectile);
-            state.projectiles.splice(i, 1);
+            console.log('Projectile removed - hit ground or max distance');
             continue;
         }
 
         if (projectile.userData.isEnemyProjectile) {
-            if (checkCollision(projectile, state.tankBody, 1.5)) {
+            // Enemy projectile hitting player
+            if (checkCollision(projectile, state.tankBody, 2.0)) {
                 if (!state.playerInvulnerable) {
                     playSound('hit');
                     state.setLives(state.lives - 1);
-                    
-                    // Show damage flash effect
                     showDamageFlash();
                     
-                    // Authentic Battlezone: One hit = one life lost
                     if (state.lives <= 0) {
                         gameOver();
                     } else {
-                        // Brief invulnerability after hit
                         state.setPlayerInvulnerable(true);
                         showInvulnerabilityIndicator(true);
                         setTimeout(() => { 
                             state.setPlayerInvulnerable(false); 
                             showInvulnerabilityIndicator(false);
                         }, 1500);
-                        
-                        // Dramatic hit feedback like original Battlezone
                         shakeCamera(2.0, 800);
                         createExplosion(state.tankBody.position, 0xff4444, 4.0);
                     }
                 }
-                // Clean up trail before releasing projectile
-                if (projectile.userData.trail) {
-                    releaseProjectileTrail(projectile.userData.trail);
-                }
                 projectilePool.release(projectile);
                 state.projectiles.splice(i, 1);
                 createExplosion(projectile.position, 0xff4444, 1.5);
+                continue;
             }
         } else {
-            // Check collision with enemy tanks
+            // Player projectile hitting enemies
+            let hitEnemy = false;
             for (const enemyTank of state.enemyTanks) {
-                if (!enemyTank.isDestroyed && checkCollision(projectile, enemyTank.body, 1.5)) {
+                if (!enemyTank.isDestroyed && checkCollision(projectile, enemyTank.body, 3.0)) {
+                    console.log('Player projectile hit enemy!', enemyTank.type);
                     playSound('hit');
-                    enemyTank.takeDamage(); // Let each enemy handle its own damage system
-                    // Clean up trail before releasing projectile
-                    if (projectile.userData.trail) {
-                        releaseProjectileTrail(projectile.userData.trail);
-                    }
+                    enemyTank.takeDamage();
                     projectilePool.release(projectile);
                     state.projectiles.splice(i, 1);
                     createExplosion(projectile.position, VECTOR_GREEN, 3.0);
-                    shakeCamera(1.0, 400); // Satisfying hit feedback
+                    shakeCamera(1.0, 400);
+                    hitEnemy = true;
                     break;
                 }
             }
+            if (hitEnemy) continue;
         }
     }
 }

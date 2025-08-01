@@ -15,10 +15,10 @@ export const GAME_PARAMS = {
     BONUS_LIFE_SCORE: 15000,
     
     // Projectile Settings - Authentic Battlezone physics
-    PROJECTILE_SPEED: 1.2,
-    PROJECTILE_MAX_DISTANCE: 200,
-    PROJECTILE_GRAVITY: 0.001,
-    FIRE_COOLDOWN: 400,
+    PROJECTILE_SPEED: 2.0,
+    PROJECTILE_MAX_DISTANCE: 300,
+    PROJECTILE_GRAVITY: 0.0,
+    FIRE_COOLDOWN: 100,
     
     // Enemy Settings - Authentic 1980 Battle Zone speeds
     TANK_SPEED: 0.04,

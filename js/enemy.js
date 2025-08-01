@@ -212,7 +212,7 @@ class EnemyMissile {
         this.scene = scene;
         this.isDestroyed = false;
         this.score = GAME_PARAMS.MISSILE_SCORE;
-        this.speed = GAME_PARAMS.TANK_SPEED * 2.5;
+        this.speed = 0.1;
         this.target = state.tankBody.position.clone();
         
         this.createMissileGeometry(position);
