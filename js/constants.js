@@ -35,7 +35,13 @@ export const GAME_PARAMS = {
     
     // Authentic Battlezone Scoring
     TANK_SCORE: 1000,
+    MISSILE_SCORE: 2000,
+    SUPERTANK_SCORE: 3000,
+    UFO_SCORE: 5000,
     
-    // Enemy Spawn Rates
+    // Enemy Spawn Rates (wave-dependent)
     TANK_SPAWN_CHANCE: 1.0,
+    MISSILE_SPAWN_CHANCE: 0.3,
+    SUPERTANK_SPAWN_CHANCE: 0.1,
+    UFO_SPAWN_CHANCE: 0.05,
 };

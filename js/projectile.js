@@ -187,7 +187,7 @@ export function updateProjectiles(gameOver) {
             for (const enemyTank of state.enemyTanks) {
                 if (!enemyTank.isDestroyed && checkCollision(projectile, enemyTank.body, 1.5)) {
                     playSound('hit');
-                    enemyTank.takeDamage(1); // One hit destroys tank in authentic Battle Zone
+                    enemyTank.takeDamage(); // Let each enemy handle its own damage system
                     // Clean up trail before releasing projectile
                     if (projectile.userData.trail) {
                         releaseProjectileTrail(projectile.userData.trail);

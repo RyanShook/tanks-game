@@ -22,6 +22,13 @@ export let labelRenderer;
 // Removed healthLabel - not needed in authentic Battle Zone
 export let gameOverScreen;
 
+// Weapon upgrade system (removed for authentic Battle Zone experience)
+export const weaponUpgrades = {
+    dualCannon: false,
+    powerShot: false,
+    rapidFire: false
+};
+
 export function setScene(s) { scene = s; }
 export function setCamera(c) { camera = c; }
 export function setRenderer(r) { renderer = r; }

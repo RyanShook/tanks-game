@@ -117,8 +117,10 @@ function animate() {
         if (!state.isGameOver) {
             handleMovement();
             updateProjectiles(gameOver);
-            // Filter out destroyed enemies before updating for better performance
-            state.enemyTanks.filter(enemy => !enemy.isDestroyed).forEach(enemy => enemy.update());
+            // Update all active enemies (tanks, missiles, supertanks)
+            state.enemyTanks.filter(enemy => !enemy.isDestroyed).forEach(enemy => {
+                if (enemy.update) enemy.update();
+            });
             updateRadar();
             updateWaveDisplay();
             checkWaveCompletion();
