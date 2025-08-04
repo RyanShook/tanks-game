@@ -31,27 +31,32 @@ export let projectilePool;
 
 export function initProjectiles(scene) {
     projectilePool = new ObjectPool(() => {
-        // Simple, highly visible projectile like original Battlezone
-        const projectileGeometry = new THREE.BoxGeometry(0.2, 0.2, 1.5);
-        const projectile = new THREE.LineSegments(
-            new THREE.EdgesGeometry(projectileGeometry),
-            new THREE.LineBasicMaterial({ 
+        // HIGHLY VISIBLE projectile - use solid mesh instead of wireframe
+        const projectileGeometry = new THREE.BoxGeometry(0.5, 0.5, 2.0);
+        const projectile = new THREE.Mesh(
+            projectileGeometry,
+            new THREE.MeshBasicMaterial({ 
                 color: VECTOR_GREEN,
-                linewidth: 2
+                wireframe: false // Solid green projectile for visibility
             })
         );
         projectile.visible = false;
         projectile.position.set(0, 0, 0);
         scene.add(projectile);
+        console.log('Created projectile:', projectile);
         return projectile;
     });
     
     // Set the projectile pool in state for access by other modules
     state.setProjectilePool(projectilePool);
+    console.log('Projectile pool initialized with', projectilePool.objects.length, 'projectiles');
 }
 
 export function fireProjectile() {
+    console.log('FireProjectile called!');
+    
     if (state.isGameOver || !projectilePool) {
+        console.log('Cannot fire - gameOver:', state.isGameOver, 'projectilePool exists:', !!projectilePool);
         return;
     }
 
@@ -59,21 +64,30 @@ export function fireProjectile() {
     // Check if we already have a player projectile in flight
     const hasPlayerProjectile = state.projectiles.some(p => !p.userData.isEnemyProjectile);
     if (hasPlayerProjectile) {
+        console.log('Cannot fire - already have projectile in flight');
         return; // Cannot fire until current projectile is gone
     }
 
+    console.log('Firing projectile!');
     playSound('shoot');
 
     const projectile = projectilePool.acquire();
+    if (!projectile) {
+        console.error('Failed to acquire projectile from pool!');
+        return;
+    }
+    
     projectile.visible = true;
+    console.log('Projectile visible set to:', projectile.visible);
 
     // Get firing position from camera/turret center (first-person view)
     const cameraWorldPos = new THREE.Vector3();
     state.camera.getWorldPosition(cameraWorldPos);
     projectile.position.copy(cameraWorldPos);
     
-    // Move projectile slightly forward from camera
-    projectile.position.y += 0.2; // Slight elevation
+    // Move projectile slightly forward and visible from camera
+    projectile.position.y += 1.0; // Higher elevation for visibility
+    projectile.position.z -= 2.0; // Start in front of camera
     
     // Get firing direction from camera/turret rotation
     const direction = new THREE.Vector3(0, 0, -1); // Forward direction
@@ -89,7 +103,11 @@ export function fireProjectile() {
 
     state.projectiles.push(projectile);
     
-    console.log('Fired projectile from position:', projectile.position, 'direction:', direction);
+    console.log('Projectile fired!');
+    console.log('- Position:', projectile.position);
+    console.log('- Direction:', direction);
+    console.log('- Visible:', projectile.visible);
+    console.log('- Total projectiles:', state.projectiles.length);
     
     // Authentic Battle Zone camera shake
     shakeCamera(0.8, 300);
@@ -100,19 +118,34 @@ export function fireProjectile() {
 }
 
 export function updateProjectiles(gameOver) {
+    if (state.projectiles.length > 0) {
+        console.log('Updating', state.projectiles.length, 'projectiles');
+    }
+    
     for (let i = state.projectiles.length - 1; i >= 0; i--) {
         const projectile = state.projectiles[i];
+        
+        if (!projectile) {
+            console.error('Null projectile found at index', i);
+            state.projectiles.splice(i, 1);
+            continue;
+        }
+        
+        // Log projectile info for debugging
+        if (i === 0) { // Only log first projectile to avoid spam
+            console.log('Projectile', i, '- Position:', projectile.position, 'Visible:', projectile.visible);
+        }
         
         // Move projectile forward
         projectile.position.add(projectile.userData.velocity);
         projectile.userData.distanceTraveled += projectile.userData.velocity.length();
 
         // Check if projectile hit ground or went too far
-        if (projectile.position.y < -2 || projectile.userData.distanceTraveled > GAME_PARAMS.PROJECTILE_MAX_DISTANCE) {
+        if (projectile.position.y < -5 || projectile.userData.distanceTraveled > GAME_PARAMS.PROJECTILE_MAX_DISTANCE) {
             createExplosion(projectile.position, projectile.userData.isEnemyProjectile ? 0xff0000 : VECTOR_GREEN, 1.0);
             projectilePool.release(projectile);
             state.projectiles.splice(i, 1);
-            console.log('Projectile removed - hit ground or max distance');
+            console.log('Projectile removed - hit ground or max distance. Traveled:', projectile.userData.distanceTraveled);
             continue;
         }
 
