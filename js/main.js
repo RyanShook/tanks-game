@@ -76,18 +76,11 @@ function init() {
         state.keyboardState[event.code] = false;
     });
 
-    // Simple mouse controls without pointer lock
-    const handleMouseMove = (event) => {
-        if (state.isGameOver) return;
-        
-        const sensitivity = 0.005;
-        const deltaX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
-        state.tankTurret.rotation.y -= deltaX * sensitivity;
-    };
+    // AUTHENTIC 1980 BATTLE ZONE: No mouse controls!
+    // Original used dual joysticks only - no mouse look
 
     const handleMouseClick = () => {
         const now = Date.now();
-        // Rapid fire upgrade reduces cooldown
         const fireRate = GAME_PARAMS.FIRE_COOLDOWN;
         if (now - lastFireTime > fireRate) {
             fireProjectile();
@@ -97,7 +90,7 @@ function init() {
 
     document.addEventListener('keydown', state.handleKeyDown);
     document.addEventListener('keyup', state.handleKeyUp);
-    document.addEventListener('mousemove', handleMouseMove);
+    // Removed mousemove event - not authentic to 1980 Battle Zone
     document.addEventListener('click', handleMouseClick);
     window.addEventListener('resize', onWindowResize, false);
 

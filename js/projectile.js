@@ -79,24 +79,32 @@ export function fireProjectile() {
     
     projectile.visible = true;
 
-    // Fire from camera position (first-person view)
+    // AUTHENTIC BATTLE ZONE: Fire from turret direction but camera position
     const cameraPos = new THREE.Vector3();
     state.camera.getWorldPosition(cameraPos);
     
-    // Start projectile in front of camera
+    // Start projectile from camera (tank body) position
     projectile.position.copy(cameraPos);
-    projectile.position.y += 0.5; // Slightly higher
+    projectile.position.y += 0.5; // Slightly above view
     
-    // Get forward direction from camera
+    // Fire in turret direction (where turret is pointing)
     const direction = new THREE.Vector3(0, 0, -1);
-    direction.applyQuaternion(state.camera.getWorldQuaternion(new THREE.Quaternion()));
     
-    // Move projectile forward from camera so it's visible
-    projectile.position.add(direction.clone().multiplyScalar(3));
+    // Apply tank body rotation first
+    direction.applyQuaternion(state.tankBody.quaternion);
     
-    console.log('Camera world position:', cameraPos);
+    // Then apply turret rotation
+    const turretRotation = new THREE.Quaternion();
+    turretRotation.setFromAxisAngle(new THREE.Vector3(0, 1, 0), state.tankTurret.rotation.y);
+    direction.applyQuaternion(turretRotation);
+    
+    // Move projectile forward so it's visible immediately
+    projectile.position.add(direction.clone().multiplyScalar(4));
+    
+    console.log('Camera (tank) position:', cameraPos);
+    console.log('Turret rotation Y:', state.tankTurret.rotation.y);
     console.log('Projectile start position:', projectile.position);
-    console.log('Fire direction:', direction);
+    console.log('Fire direction (turret aim):', direction);
     
     // Same velocity setup as enemies (this works!)
     projectile.userData.velocity = direction.multiplyScalar(GAME_PARAMS.PROJECTILE_SPEED);

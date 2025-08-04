@@ -82,10 +82,11 @@ export function createPlayer() {
     tankTurret.add(tankCannon);
     state.setTankCannon(tankCannon);
 
-    // Attach camera to turret for first-person view
-    tankTurret.add(state.camera);
-    state.camera.position.set(0, 0.3, -0.5); // Inside turret, first-person view
-    state.camera.lookAt(0, 0, -10); // Look forward
+    // AUTHENTIC BATTLE ZONE: Camera fixed to tank body, not turret
+    // This gives fixed forward view while turret can rotate independently
+    tankBody.add(state.camera);
+    state.camera.position.set(0, 2.0, -1.0); // Above tank body, first-person view
+    state.camera.lookAt(0, 2.0, -10); // Fixed forward view
 
     // Hide player tank - you can't see yourself in first-person
     tankBody.visible = false;
