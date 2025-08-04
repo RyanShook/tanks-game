@@ -76,8 +76,9 @@ function init() {
         state.keyboardState[event.code] = false;
     });
 
-    // AUTHENTIC 1980 BATTLE ZONE: No mouse controls!
-    // Original used dual joysticks only - no mouse look
+    // AUTHENTIC 1980 BATTLE ZONE: NO MOUSE CONTROLS WHATSOEVER!
+    // Original arcade used dual joysticks only - absolutely no mouse movement
+    console.log('Mouse controls disabled - authentic 1980 Battle Zone mode');
 
     const handleMouseClick = () => {
         const now = Date.now();
@@ -88,10 +89,19 @@ function init() {
         }
     };
 
+    // Add explicit mouse movement blocker
+    const blockMouseMovement = (event) => {
+        // Completely block any mouse movement effects
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+    };
+
     document.addEventListener('keydown', state.handleKeyDown);
     document.addEventListener('keyup', state.handleKeyUp);
-    // Removed mousemove event - not authentic to 1980 Battle Zone
     document.addEventListener('click', handleMouseClick);
+    // EXPLICITLY BLOCK mouse movement
+    document.addEventListener('mousemove', blockMouseMovement);
     window.addEventListener('resize', onWindowResize, false);
 
     // Don't start sounds or animation until user clicks start button
