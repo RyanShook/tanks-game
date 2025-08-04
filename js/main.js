@@ -1,3 +1,17 @@
+/**
+ * AUTHENTIC 1980 BATTLE ZONE RECREATION
+ * 
+ * Main game controller and initialization
+ * Handles scene setup, game loop, controls, and game state management
+ * 
+ * Key Features:
+ * - Authentic dual-joystick style controls (WASD + Arrow Keys)
+ * - First-person tank combat with fixed camera view
+ * - Single-shot projectile system like original arcade
+ * - Wave-based enemy progression
+ * - No mouse look controls (authentic to 1980 arcade)
+ */
+
 import * as THREE from 'three';
 import { GAME_PARAMS } from './constants.js';
 import * as state from './state.js';
@@ -9,39 +23,47 @@ import { createMountainRange, createHorizontalGrid, createObstacles } from './wo
 import { createPlayer, handleMovement } from './player.js';
 import { spawnWave } from './enemy.js';
 
+/**
+ * Initialize the game scene, renderer, and all game systems
+ * Sets up the 3D world, lighting, and game objects
+ */
 function init() {
+    // === SCENE SETUP ===
     state.setScene(new THREE.Scene());
-    state.scene.background = new THREE.Color(0x001100); // Very dark green instead of pure black
+    state.scene.background = new THREE.Color(0x001100); // Authentic dark green background
 
-    // Add basic lighting to help with visibility
+    // Basic ambient lighting for wireframe visibility
     const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
     state.scene.add(ambientLight);
 
-    // Initialize game state
+    // === GAME SYSTEM INITIALIZATION ===
     state.setGameOverScreen(document.getElementById('gameOver'));
+    initProjectiles(state.scene);  // Initialize projectile object pool
+    initEffects(state.scene);      // Initialize explosion and effect systems
 
-    initProjectiles(state.scene);
-    initEffects(state.scene);
-
+    // === CAMERA SETUP ===
+    // Wide FOV camera for authentic Battle Zone feel
     state.setCamera(new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000));
-    // Don't set camera position here - it will be set when player is created
+    // Camera position set when player tank is created
 
+    // === RENDERER SETUP ===
     state.setRenderer(new THREE.WebGLRenderer({ antialias: true, alpha: true }));
     state.renderer.setSize(window.innerWidth, window.innerHeight);
     state.renderer.setPixelRatio(window.devicePixelRatio);
-    // Add canvas FIRST to ensure it's behind HUD elements
-    document.body.appendChild(state.renderer.domElement);
+    document.body.appendChild(state.renderer.domElement); // Canvas must be first for proper layering
 
+    // === WORLD CREATION ===
+    // Ground grid - authentic Battle Zone flat terrain
     const grid = createHorizontalGrid(GAME_PARAMS.GRID_SIZE, GAME_PARAMS.GRID_DIVISIONS, 0x00ff00);
     grid.position.y = -0.5;
     state.scene.add(grid);
 
-    createMountainRange();
-    createObstacles();
-    createPlayer();
-    // Create HUD AFTER canvas so it appears on top
-    createHUD();
+    createMountainRange();  // Distant mountains on horizon
+    createObstacles();      // Pyramids and blocks for cover
+    createPlayer();         // Create player tank and camera setup
+    createHUD();           // Radar, score, lives display (must be after canvas)
 
+    // === INITIAL WAVE ===
     spawnWave(state.currentWave);
 
     // Debug logging
@@ -55,15 +77,18 @@ function init() {
     console.log('- Canvas element:', state.renderer.domElement);
     console.log('- Canvas parent:', state.renderer.domElement.parentElement);
 
-    // Authentic Battlezone firing control with cooldown
+    // === AUTHENTIC BATTLE ZONE CONTROLS ===
+    // Single-shot firing system with cooldown (like original arcade)
     let lastFireTime = 0;
 
+    // Keyboard input handlers - dual joystick simulation
     state.setHandleKeyDown((event) => {
         state.keyboardState[event.code] = true;
+        
+        // SPACE = Fire cannon (like original fire button)
         if (event.code === 'Space') {
             event.preventDefault();
             const now = Date.now();
-            // Rapid fire upgrade reduces cooldown
             const fireRate = GAME_PARAMS.FIRE_COOLDOWN;
             if (now - lastFireTime > fireRate) {
                 fireProjectile();
@@ -76,8 +101,9 @@ function init() {
         state.keyboardState[event.code] = false;
     });
 
-    // AUTHENTIC 1980 BATTLE ZONE: NO MOUSE CONTROLS WHATSOEVER!
-    // Original arcade used dual joysticks only - absolutely no mouse movement
+    // === MOUSE CONTROLS (FIRING ONLY) ===
+    // AUTHENTIC 1980 BATTLE ZONE: NO mouse look - only firing!
+    // Original arcade used dual joysticks only - no mouse movement
     console.log('Mouse controls disabled - authentic 1980 Battle Zone mode');
 
     const handleMouseClick = () => {
@@ -89,19 +115,18 @@ function init() {
         }
     };
 
-    // Add explicit mouse movement blocker
+    // Explicit mouse movement blocker - prevents any mouse look
     const blockMouseMovement = (event) => {
-        // Completely block any mouse movement effects
         event.preventDefault();
         event.stopPropagation();
         return false;
     };
 
+    // === EVENT LISTENERS ===
     document.addEventListener('keydown', state.handleKeyDown);
     document.addEventListener('keyup', state.handleKeyUp);
-    document.addEventListener('click', handleMouseClick);
-    // EXPLICITLY BLOCK mouse movement
-    document.addEventListener('mousemove', blockMouseMovement);
+    document.addEventListener('click', handleMouseClick);      // Click to fire
+    document.addEventListener('mousemove', blockMouseMovement); // Block mouse look
     window.addEventListener('resize', onWindowResize, false);
 
     // Don't start sounds or animation until user clicks start button
