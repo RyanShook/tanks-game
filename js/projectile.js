@@ -78,27 +78,30 @@ export function fireProjectile() {
     }
     
     projectile.visible = true;
-    console.log('Projectile visible set to:', projectile.visible);
 
-    // Get firing position from camera/turret center (first-person view)
-    const cameraWorldPos = new THREE.Vector3();
-    state.camera.getWorldPosition(cameraWorldPos);
-    projectile.position.copy(cameraWorldPos);
+    // Fire from camera position (first-person view)
+    const cameraPos = new THREE.Vector3();
+    state.camera.getWorldPosition(cameraPos);
     
-    // Move projectile slightly forward and visible from camera
-    projectile.position.y += 1.0; // Higher elevation for visibility
-    projectile.position.z -= 2.0; // Start in front of camera
+    // Start projectile in front of camera
+    projectile.position.copy(cameraPos);
+    projectile.position.y += 0.5; // Slightly higher
     
-    // Get firing direction from camera/turret rotation
-    const direction = new THREE.Vector3(0, 0, -1); // Forward direction
-    direction.applyQuaternion(state.camera.quaternion);
+    // Get forward direction from camera
+    const direction = new THREE.Vector3(0, 0, -1);
+    direction.applyQuaternion(state.camera.getWorldQuaternion(new THREE.Quaternion()));
     
-    // Authentic Battle Zone projectile properties
+    // Move projectile forward from camera so it's visible
+    projectile.position.add(direction.clone().multiplyScalar(3));
+    
+    console.log('Camera world position:', cameraPos);
+    console.log('Projectile start position:', projectile.position);
+    console.log('Fire direction:', direction);
+    
+    // Same velocity setup as enemies (this works!)
     projectile.userData.velocity = direction.multiplyScalar(GAME_PARAMS.PROJECTILE_SPEED);
     projectile.userData.distanceTraveled = 0;
     projectile.userData.isEnemyProjectile = false;
-    
-    // No trail for authentic Battle Zone - projectiles were simple lines
     projectile.userData.trail = null;
 
     state.projectiles.push(projectile);
