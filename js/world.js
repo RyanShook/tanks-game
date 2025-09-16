@@ -1,3 +1,16 @@
+/**
+ * BATTLE ZONE WORLD GENERATION
+ * 
+ * Creates the game world terrain and obstacles
+ * 
+ * Key Features:
+ * - Authentic wireframe geometric terrain
+ * - Procedural mountain ranges on horizon
+ * - Pyramid and block obstacles for tactical cover
+ * - Grid-based ground plane
+ * - Original 1980 vector graphics aesthetic
+ */
+
 import * as THREE from 'three';
 import { GAME_PARAMS, VECTOR_GREEN } from './constants.js';
 import * as state from './state.js';
@@ -50,6 +63,8 @@ export function createMountainRange() {
 export function createHorizontalGrid(size, divisions, color) {
     const group = new THREE.Group();
     const step = size / divisions;
+    
+    // Horizontal lines (along X-axis)
     for (let i = -divisions/2; i <= divisions/2; i++) {
         const z = i * step;
         const geometry = new THREE.BufferGeometry().setFromPoints([
@@ -59,6 +74,18 @@ export function createHorizontalGrid(size, divisions, color) {
         const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: color, linewidth: 1 }));
         group.add(line);
     }
+    
+    // Vertical lines (along Z-axis) for authentic Battlezone full grid
+    for (let i = -divisions/2; i <= divisions/2; i++) {
+        const x = i * step;
+        const geometry = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(x, 0, -size/2),
+            new THREE.Vector3(x, 0, size/2)
+        ]);
+        const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: color, linewidth: 1 }));
+        group.add(line);
+    }
+    
     return group;
 }
 

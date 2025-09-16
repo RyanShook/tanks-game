@@ -32,10 +32,10 @@ A retro-style 3D tank combat game built with Three.js, featuring wireframe graph
 
 ## 🎯 Controls
 
-- **`W`** - Move forward
-- **`S`** - Move backward  
-- **`A`** - Rotate left
-- **`D`** - Rotate right
+- **`Q` + `W`** - Drive both treads forward
+- **`A` + `S`** - Drive both treads in reverse  
+- **`Q` + `S`** / **`A` + `W`** - Pivot right / left
+- **`Arrow Up` / `Arrow Down`** - Mirror the right tread controls
 - **`SPACE`** - Fire cannon
 - **`R`** - Restart game (when game over)
 

@@ -1,3 +1,15 @@
+/**
+ * BATTLE ZONE UTILITY FUNCTIONS
+ * 
+ * Shared utility functions and classes
+ * 
+ * Key Features:
+ * - Object pooling system for performance optimization
+ * - Collision detection algorithms
+ * - Mathematical utility functions
+ * - Reusable game mechanics
+ */
+
 import * as THREE from 'three';
 
 export class ObjectPool {

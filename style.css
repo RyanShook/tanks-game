@@ -27,7 +27,7 @@ canvas:not(#radar canvas) {
 
 #radar {
     position: fixed;
-    top: 10px;
+    top: 84px;
     left: 50%;
     transform: translateX(-50%);
     width: 320px;
@@ -51,30 +51,42 @@ canvas:not(#radar canvas) {
     pointer-events: none;
 }
 
-#score {
+#score,
+#hiScore,
+#waveInfo,
+#health {
     position: fixed;
-    top: 10px;
-    left: 20px;
     color: #00ff00;
     font-family: monospace;
+    letter-spacing: 2px;
     font-size: 22px;
     padding: 0;
     background: none;
     border: none;
-    z-index: 1000;
+    z-index: 1100;
+    text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
+}
+
+#score {
+    top: 18px;
+    left: 28px;
+}
+
+#hiScore {
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+#waveInfo {
+    top: 52px;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 #health {
-    position: fixed;
-    top: 10px;
-    right: 20px;
-    color: #00ff00;
-    font-family: monospace;
-    font-size: 22px;
-    padding: 0;
-    background: none;
-    border: none;
-    z-index: 1000;
+    top: 18px;
+    right: 28px;
 }
 
 #gameOver {
@@ -91,11 +103,6 @@ canvas:not(#radar canvas) {
     border: 2px solid #00ff00;
     display: none;
     z-index: 1000;
-}
-
-.restart-text {
-    font-size: 24px;
-    margin-top: 20px;
 }
 
 #startScreen {
@@ -149,6 +156,74 @@ canvas:not(#radar canvas) {
     box-shadow: 0 0 20px #00ff00;
 }
 
+.periscope-frame {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 950;
+}
+
+.periscope-mask {
+    position: absolute;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    border: 2px solid #00ff00;
+    border-left: none;
+    border-right: none;
+    box-shadow: 0 0 16px rgba(0, 255, 0, 0.4);
+}
+
+.periscope-mask--top {
+    top: 0;
+    height: 18vh;
+    clip-path: polygon(0 0, 100% 0, 85% 100%, 15% 100%);
+    border-bottom: 2px solid #00ff00;
+    border-top: none;
+}
+
+.periscope-mask--bottom {
+    bottom: 0;
+    height: 22vh;
+    clip-path: polygon(15% 0, 85% 0, 100% 100%, 0 100%);
+    border-top: 2px solid #00ff00;
+    border-bottom: none;
+}
+
+.periscope-reticle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200px;
+    height: 200px;
+    transform: translate(-50%, -50%);
+    border: 2px solid rgba(0, 255, 0, 0.7);
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
+}
+
+.periscope-reticle::before,
+.periscope-reticle::after {
+    content: '';
+    position: absolute;
+    background: rgba(0, 255, 0, 0.7);
+}
+
+.periscope-reticle::before {
+    width: 2px;
+    height: 100%;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.periscope-reticle::after {
+    height: 2px;
+    width: 100%;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
 /* Damage flash overlay */
 .damage-flash {
     position: fixed;
@@ -187,43 +262,4 @@ canvas:not(#radar canvas) {
 @keyframes blink {
     0%, 50% { opacity: 1; }
     51%, 100% { opacity: 0.3; }
-}
-
-/* Weapon upgrade notifications */
-.upgrade-notification {
-    position: fixed;
-    top: 30%;
-    left: 50%;
-    transform: translateX(-50%);
-    color: #ffff00;
-    font-family: monospace;
-    font-size: 24px;
-    font-weight: bold;
-    text-align: center;
-    z-index: 2000;
-    background: rgba(0, 0, 0, 0.8);
-    padding: 15px 30px;
-    border: 2px solid #ffff00;
-    animation: upgradeFlash 3s ease-out forwards;
-    text-shadow: 0 0 10px #ffff00;
-}
-
-@keyframes upgradeFlash {
-    0% { 
-        opacity: 1; 
-        transform: translateX(-50%) scale(1.2); 
-        box-shadow: 0 0 20px #ffff00;
-    }
-    20% { 
-        opacity: 1; 
-        transform: translateX(-50%) scale(1.0); 
-    }
-    80% { 
-        opacity: 1; 
-        transform: translateX(-50%) scale(1.0); 
-    }
-    100% { 
-        opacity: 0; 
-        transform: translateX(-50%) scale(0.8); 
-    }
 }

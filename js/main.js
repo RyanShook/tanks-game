@@ -5,7 +5,7 @@
  * Handles scene setup, game loop, controls, and game state management
  * 
  * Key Features:
- * - Authentic dual-joystick style controls (WASD + Arrow Keys)
+ * - Authentic dual-joystick style controls mapped to tank treads
  * - First-person tank combat with fixed camera view
  * - Single-shot projectile system like original arcade
  * - Wave-based enemy progression
@@ -20,7 +20,7 @@ import { initEffects, createExplosion, updateCameraShake } from './effects.js';
 import { createHUD, updateLivesDisplay, updateRadar, updateWaveDisplay, showWaveCompletionMessage } from './hud.js';
 import { initSounds, playSound } from './sound.js';
 import { createMountainRange, createHorizontalGrid, createObstacles } from './world.js';
-import { createPlayer, handleMovement } from './player.js';
+import { createPlayer, handleMovement, resetTracks } from './player.js';
 import { spawnWave } from './enemy.js';
 
 /**
@@ -30,10 +30,10 @@ import { spawnWave } from './enemy.js';
 function init() {
     // === SCENE SETUP ===
     state.setScene(new THREE.Scene());
-    state.scene.background = new THREE.Color(0x001100); // Authentic dark green background
+    state.scene.background = new THREE.Color(0x000000); // Authentic pure black background
 
-    // Basic ambient lighting for wireframe visibility
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.8);
+    // Minimal ambient lighting for authentic vector look
+    const ambientLight = new THREE.AmbientLight(0x002200, 0.3);
     state.scene.add(ambientLight);
 
     // === GAME SYSTEM INITIALIZATION ===
@@ -43,20 +43,18 @@ function init() {
 
     // === CAMERA SETUP ===
     // Wide FOV camera for authentic Battle Zone feel
-    state.setCamera(new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000));
+    state.setCamera(new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.01, 2000));
     // Camera position set when player tank is created
 
     // === RENDERER SETUP ===
-    state.setRenderer(new THREE.WebGLRenderer({ antialias: true, alpha: true }));
+    // No antialias for authentic pixelated vector look
+    state.setRenderer(new THREE.WebGLRenderer({ antialias: false, alpha: false }));
     state.renderer.setSize(window.innerWidth, window.innerHeight);
-    state.renderer.setPixelRatio(window.devicePixelRatio);
+    state.renderer.setPixelRatio(1); // Lock to 1:1 for authentic pixel-perfect vectors
     document.body.appendChild(state.renderer.domElement); // Canvas must be first for proper layering
 
     // === WORLD CREATION ===
-    // Ground grid - authentic Battle Zone flat terrain
-    const grid = createHorizontalGrid(GAME_PARAMS.GRID_SIZE, GAME_PARAMS.GRID_DIVISIONS, 0x00ff00);
-    grid.position.y = -0.5;
-    state.scene.add(grid);
+    // No ground grid - pure black ground
 
     createMountainRange();  // Distant mountains on horizon
     createObstacles();      // Pyramids and blocks for cover
@@ -66,16 +64,7 @@ function init() {
     // === INITIAL WAVE ===
     spawnWave(state.currentWave);
 
-    // Debug logging
-    console.log('Game initialized:');
-    console.log('- Scene children count:', state.scene.children.length);
-    console.log('- Camera position:', state.camera.position);
-    console.log('- Camera world position:', state.camera.getWorldPosition(new THREE.Vector3()));
-    console.log('- Tank body visible:', state.tankBody?.visible);
-    console.log('- Tank body position:', state.tankBody?.position);
-    console.log('- Renderer size:', state.renderer.getSize(new THREE.Vector2()));
-    console.log('- Canvas element:', state.renderer.domElement);
-    console.log('- Canvas parent:', state.renderer.domElement.parentElement);
+    // Game initialization complete
 
     // === AUTHENTIC BATTLE ZONE CONTROLS ===
     // Single-shot firing system with cooldown (like original arcade)
@@ -104,7 +93,6 @@ function init() {
     // === MOUSE CONTROLS (FIRING ONLY) ===
     // AUTHENTIC 1980 BATTLE ZONE: NO mouse look - only firing!
     // Original arcade used dual joysticks only - no mouse movement
-    console.log('Mouse controls disabled - authentic 1980 Battle Zone mode');
 
     const handleMouseClick = () => {
         const now = Date.now();
@@ -245,6 +233,7 @@ function updateGameOverStats() {
 
 function updateHighScoreDisplay() {
     const highScore = parseInt(localStorage.getItem('battleZoneHighScore') || '0');
+    state.setHighScore(highScore);
     const highScoreElement = document.getElementById('highScoreDisplay');
     if (highScoreElement) {
         highScoreElement.textContent = highScore.toString().padStart(6, '0');
@@ -280,8 +269,6 @@ function resetGame() {
     // Spawn first wave
     spawnWave(state.currentWave);
     updateLivesDisplay();
-    
-    console.log('Game restarted');
 }
 
 function resetGameState() {
@@ -321,8 +308,7 @@ function resetGameState() {
     state.setLastBonusLifeScore(0);
     state.setEnemiesRemaining(0);
     
-    // Reset weapon upgrades
-
+    resetTracks();
 }
 
 function checkWaveCompletion() {
@@ -358,7 +344,6 @@ function increaseDifficulty() {
     if (state.currentWave % 3 === 0) {
         GAME_PARAMS.TANK_SPEED = Math.min(GAME_PARAMS.TANK_SPEED + 0.01, 0.25);
         GAME_PARAMS.TANK_SHOT_INTERVAL = Math.max(GAME_PARAMS.TANK_SHOT_INTERVAL - 200, 1000);
-        console.log(`Wave ${state.currentWave}: Difficulty increased - Speed: ${GAME_PARAMS.TANK_SPEED}, Shot interval: ${GAME_PARAMS.TANK_SHOT_INTERVAL}`);
     }
 }
 
@@ -382,8 +367,6 @@ function startGame() {
     
     // Start game loop
     animate();
-    
-    console.log('Game started with audio enabled!');
 }
 
 // Set up the scene but don't start the game yet

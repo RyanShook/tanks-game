@@ -14,12 +14,13 @@
         <div class="instructions">
           <div>ENTER THE BATTLEFIELD</div>
           <div class="controls">
-            <div>WASD - MOVE TANK</div>
-            <div>ARROW KEYS - ROTATE TURRET</div>
-            <div>SPACE - FIRE CANNON</div>
-            <div>MOUSE CLICK - FIRE CANNON</div>
+            <div>Q + W &mdash; BOTH TREADS FORWARD</div>
+            <div>A + S &mdash; BOTH TREADS REVERSE</div>
+            <div>Q + S / A + W &mdash; PIVOT RIGHT / LEFT</div>
+            <div>SPACE &mdash; FIRE CANNON</div>
+            <div>ARROW UP/DOWN MIRROR RIGHT TREAD</div>
           </div>
-          <div class="objective">DESTROY ALL ENEMIES</div>
+          <div class="objective">DESTROY ALL ENEMY VEHICLES</div>
           <div class="enemy-types">
             <div>TANK: 1000 pts | MISSILE: 2000 pts</div>
             <div>SUPERTANK: 3000 pts | UFO: 5000 pts</div>
@@ -32,8 +33,10 @@
     </div>
     
     <div id="radar"></div>
-    <div id="score">SCORE: 0000</div>
-    <div id="health">LIVES: ███</div>
+    <div id="score">SCORE 000000</div>
+    <div id="hiScore">HI-SCORE 000000</div>
+    <div id="waveInfo">WAVE 1  ENEMY 0</div>
+    <div id="health">LIVES 3</div>
     <div class="damage-flash"></div>
     <div class="invulnerable-indicator">SHIELD ACTIVE</div>
     <div id="gameOver">
@@ -50,6 +53,11 @@
           <div>PRESS ESC FOR MAIN MENU</div>
         </div>
       </div>
+    </div>
+    <div class="periscope-frame">
+      <div class="periscope-mask periscope-mask--top"></div>
+      <div class="periscope-mask periscope-mask--bottom"></div>
+      <div class="periscope-reticle"></div>
     </div>
 
     <!-- Three.js library will be imported in script.js -->

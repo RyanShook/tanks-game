@@ -1,3 +1,21 @@
+/**
+ * AUTHENTIC BATTLE ZONE ENEMY SYSTEM
+ * 
+ * Implements AI-controlled enemies from the original 1980 arcade game
+ * 
+ * Enemy Types:
+ * - EnemyTank: Standard green wireframe tanks with tactical AI
+ * - EnemyMissile: Fast-moving red projectile enemies
+ * - EnemySuperTank: Heavily armored yellow tanks with dual cannons
+ * - EnemyUFO: Bonus target flying saucers (non-aggressive)
+ * 
+ * Key Features:
+ * - Authentic wireframe geometry matching original arcade
+ * - Smart AI with tactical positioning and evasive maneuvers
+ * - Progressive wave spawning system
+ * - Collision detection with terrain and obstacles
+ */
+
 import * as THREE from 'three';
 import { GAME_PARAMS, VECTOR_GREEN, VECTOR_RED, VECTOR_YELLOW } from './constants.js';
 import * as state from './state.js';
@@ -5,7 +23,10 @@ import { createExplosion } from './effects.js';
 import { checkCollision } from './utils.js';
 import { projectilePool } from './projectile.js';
 
-// Authentic Battlezone Enemy Tank
+/**
+ * ENEMY TANK CLASS
+ * Standard Battle Zone enemy with tactical AI
+ */
 class EnemyTank {
     constructor(scene, position) {
         this.type = 'tank';
@@ -20,31 +41,40 @@ class EnemyTank {
     }
     
     createTankGeometry(position) {
-        // Tank body - rectangular wireframe
-        const bodyGeometry = new THREE.BoxGeometry(2, 1, 3);
+        // Tank body - larger and more visible wireframe
+        const bodyGeometry = new THREE.BoxGeometry(4, 2, 6);
         this.body = new THREE.LineSegments(
             new THREE.EdgesGeometry(bodyGeometry),
-            new THREE.LineBasicMaterial({ color: VECTOR_GREEN })
+            new THREE.LineBasicMaterial({ 
+                color: VECTOR_GREEN,
+                linewidth: 2 // Thicker lines for better visibility
+            })
         );
         this.body.position.copy(position);
-        this.body.position.y = 0.5;
+        this.body.position.y = 1;
         
-        // Tank turret
-        const turretGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.8, 6);
+        // Tank turret - larger
+        const turretGeometry = new THREE.CylinderGeometry(1.2, 1.2, 1.6, 6);
         this.turret = new THREE.LineSegments(
             new THREE.EdgesGeometry(turretGeometry),
-            new THREE.LineBasicMaterial({ color: VECTOR_GREEN })
+            new THREE.LineBasicMaterial({ 
+                color: VECTOR_GREEN,
+                linewidth: 2
+            })
         );
-        this.turret.position.y = 1;
+        this.turret.position.y = 1.8;
         this.body.add(this.turret);
         
-        // Tank cannon
-        const cannonGeometry = new THREE.BoxGeometry(0.2, 0.2, 2);
+        // Tank cannon - larger and more visible
+        const cannonGeometry = new THREE.BoxGeometry(0.4, 0.4, 4);
         this.cannon = new THREE.LineSegments(
             new THREE.EdgesGeometry(cannonGeometry),
-            new THREE.LineBasicMaterial({ color: VECTOR_GREEN })
+            new THREE.LineBasicMaterial({ 
+                color: VECTOR_GREEN,
+                linewidth: 2
+            })
         );
-        this.cannon.position.set(0, 0.1, 1);
+        this.cannon.position.set(0, 0.2, 2);
         this.turret.add(this.cannon);
     }
     
@@ -142,10 +172,9 @@ export function spawnWave(waveNumber) {
     state.enemyTanks.forEach(enemy => state.scene.remove(enemy.body));
     state.enemyTanks.length = 0;
     
-    // Authentic Battle Zone: Fewer enemies but more challenging
-    // Original had only 1-2 enemies at a time for focus
-    const baseEnemies = Math.min(1 + Math.floor(waveNumber / 3), 3);
-    const spawnRadius = 150 + waveNumber * 15;
+    // More enemies for better gameplay experience
+    const baseEnemies = Math.min(3 + waveNumber, 8);
+    const spawnRadius = 80 + waveNumber * 10; // Spawn closer for easier finding
     
     for (let i = 0; i < baseEnemies; i++) {
         const angle = (i / baseEnemies) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;

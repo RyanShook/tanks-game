@@ -1,3 +1,16 @@
+/**
+ * AUTHENTIC BATTLE ZONE CONSTANTS
+ * 
+ * Game configuration and parameters for the 1980 arcade recreation
+ * 
+ * Key Features:
+ * - Authentic movement speeds and physics parameters
+ * - Original arcade color scheme (green vector graphics)
+ * - Scoring system and enemy values
+ * - Weapon and projectile configurations
+ * - World boundaries and environmental settings
+ */
+
 // Authentic 1980 Battlezone Colors
 export const VECTOR_GREEN = 0x00ff00;
 export const VECTOR_RED = 0xff0000;
@@ -5,11 +18,12 @@ export const VECTOR_YELLOW = 0xffff00;
 
 // Authentic Battlezone Game Parameters
 export const GAME_PARAMS = {
-    // Player Tank Settings - Authentic 1980 Battle Zone deliberate controls
-    MOVE_SPEED: 0.08,
-    ROTATION_SPEED: 0.025,
-    TURRET_ROTATION_SPEED: 0.03,
-    
+    // Player Tank Settings - dual track controls like the arcade cabinet
+    TRACK_MAX_SPEED: 0.35,
+    TRACK_ACCELERATION: 0.012,
+    TRACK_DECELERATION: 0.02,
+    TRACK_TURN_FACTOR: 0.015,
+
     // Lives System (Authentic Battlezone)
     STARTING_LIVES: 3,
     BONUS_LIFE_SCORE: 15000,

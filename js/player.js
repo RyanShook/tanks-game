@@ -6,17 +6,15 @@
  * 
  * Key Features:
  * - Wireframe tank construction (body, turret, cannon)
- * - Dual-joystick movement simulation (WASD + Arrow Keys)
+ * - Dual-tread movement like the arcade cabinet (Q/A left, W/S right)
  * - First-person camera fixed to tank body
- * - Independent turret rotation
+ * - Turret locked forward to mimic periscope targeting
  * - Collision detection and boundary enforcement
  */
 
 import * as THREE from 'three';
 import { GAME_PARAMS, VECTOR_GREEN } from './constants.js';
 import * as state from './state.js';
-import { checkCollision } from './utils.js';
-import { fireProjectile } from './projectile.js';
 import { checkTerrainCollision } from './enemy.js';
 
 /**
@@ -26,7 +24,7 @@ import { checkTerrainCollision } from './enemy.js';
  * @param {number} depth - Tank body depth
  * @returns {THREE.LineSegments} Wireframe tank body
  */
-export function createTankBody(width, height, depth) {
+function createTankBody(width, height, depth) {
     const shape = [
         [-width/2, 0, -depth/2], [width/2, 0, -depth/2], [width/2, 0, depth/2], [-width/2, 0, depth/2],
         [-width/3, height, -depth/3], [width/3, height, -depth/3], [width/3, height, depth/3], [-width/3, height, depth/3],
@@ -52,7 +50,7 @@ export function createTankBody(width, height, depth) {
  * @param {number} height - Turret height
  * @returns {THREE.LineSegments} Wireframe turret
  */
-export function createTurret(radius, height) {
+function createTurret(radius, height) {
     const points = [];
     const segments = 6; // Hexagonal turret for authentic Battle Zone look
     
@@ -89,7 +87,7 @@ export function createTurret(radius, height) {
  * @param {number} length - Cannon length
  * @returns {THREE.LineSegments} Wireframe cannon
  */
-export function createCannon(radius, length) {
+function createCannon(radius, length) {
     const w = radius, l = length, h = radius * 0.6;
     const shape = [
         [0, -h, -w], [l, -h, -w], [l, h, -w], [0, h, -w],
@@ -110,7 +108,12 @@ export function createCannon(radius, length) {
  * Create the complete player tank system
  * Assembles body, turret, cannon and sets up first-person camera
  */
+let leftTrackVelocity = 0;
+let rightTrackVelocity = 0;
+
 export function createPlayer() {
+    leftTrackVelocity = 0;
+    rightTrackVelocity = 0;
     // === TANK GEOMETRY CREATION ===
     const bodyWidth = 2, bodyHeight = 1, bodyDepth = 3;
     const tankBody = createTankBody(bodyWidth, bodyHeight, bodyDepth);
@@ -144,11 +147,34 @@ export function createPlayer() {
     tankCannon.visible = false;
 }
 
+function updateTrackVelocity(current, input) {
+    const target = input * GAME_PARAMS.TRACK_MAX_SPEED;
+    if (input !== 0) {
+        if (current < target) {
+            current = Math.min(current + GAME_PARAMS.TRACK_ACCELERATION, target);
+        } else if (current > target) {
+            current = Math.max(current - GAME_PARAMS.TRACK_ACCELERATION, target);
+        }
+    } else {
+        if (current > 0) {
+            current = Math.max(0, current - GAME_PARAMS.TRACK_DECELERATION);
+        } else if (current < 0) {
+            current = Math.min(0, current + GAME_PARAMS.TRACK_DECELERATION);
+        }
+    }
+    return current;
+}
+
+export function resetTracks() {
+    leftTrackVelocity = 0;
+    rightTrackVelocity = 0;
+}
+
 /**
  * Handle player tank movement and controls
  * Implements authentic Battle Zone dual-joystick style controls
- * WASD = Tank body movement (left joystick simulation)
- * Arrow Keys = Turret rotation (right joystick simulation)
+ * Q/A control the left tread, W/S control the right tread
+ * Arrow keys also map to the right tread for accessibility
  */
 export function handleMovement() {
     if (state.isGameOver) return;
@@ -156,32 +182,27 @@ export function handleMovement() {
     // Store position for collision reversion
     const previousPosition = state.tankBody.position.clone();
 
-    // === TANK BODY MOVEMENT (WASD - Left "Joystick") ===
-    // Forward movement
-    if (state.keyboardState['KeyW']) {
-        state.tankBody.translateZ(-GAME_PARAMS.MOVE_SPEED);
-    }
-    
-    // Reverse movement (slower like real tanks)
-    if (state.keyboardState['KeyS']) {
-        state.tankBody.translateZ(GAME_PARAMS.MOVE_SPEED * 0.7);
-    }
-    
-    // Tank body rotation (left/right movement)
-    if (state.keyboardState['KeyA']) {
-        state.tankBody.rotation.y += GAME_PARAMS.ROTATION_SPEED;
-    }
-    if (state.keyboardState['KeyD']) {
-        state.tankBody.rotation.y -= GAME_PARAMS.ROTATION_SPEED;
+    const leftInput = (state.keyboardState['KeyQ'] ? 1 : 0) - (state.keyboardState['KeyA'] ? 1 : 0);
+    const rightInput = ((state.keyboardState['KeyW'] ? 1 : 0) + (state.keyboardState['ArrowUp'] ? 1 : 0))
+        - ((state.keyboardState['KeyS'] ? 1 : 0) + (state.keyboardState['ArrowDown'] ? 1 : 0));
+
+    leftTrackVelocity = updateTrackVelocity(leftTrackVelocity, leftInput);
+    rightTrackVelocity = updateTrackVelocity(rightTrackVelocity, rightInput);
+
+    const forwardSpeed = (leftTrackVelocity + rightTrackVelocity) * 0.5;
+    const turnSpeed = (rightTrackVelocity - leftTrackVelocity) * GAME_PARAMS.TRACK_TURN_FACTOR;
+
+    if (turnSpeed !== 0) {
+        state.tankBody.rotation.y -= turnSpeed;
     }
 
-    // === TURRET ROTATION (Arrow Keys - Right "Joystick") ===
-    // Independent turret aiming - authentic Battle Zone feature
-    if (state.keyboardState['ArrowLeft']) {
-        state.tankTurret.rotation.y += GAME_PARAMS.TURRET_ROTATION_SPEED;
+    if (forwardSpeed !== 0) {
+        state.tankBody.translateZ(-forwardSpeed);
     }
-    if (state.keyboardState['ArrowRight']) {
-        state.tankTurret.rotation.y -= GAME_PARAMS.TURRET_ROTATION_SPEED;
+
+    // Turret stays locked forward like the original periscope view
+    if (state.tankTurret) {
+        state.tankTurret.rotation.y *= 0.6;
     }
 
     // === COLLISION DETECTION ===
@@ -201,4 +222,3 @@ export function handleMovement() {
         state.tankBody.position.copy(previousPosition);
     }
 }
-

@@ -1,3 +1,16 @@
+/**
+ * BATTLE ZONE HUD SYSTEM
+ * 
+ * Heads-up display for game information and radar
+ * 
+ * Key Features:
+ * - Authentic Battle Zone radar display
+ * - Score, lives, and wave indicators
+ * - Real-time enemy tracking on minimap
+ * - Classic arcade-style UI elements
+ * - Wave completion messages
+ */
+
 import * as state from './state.js';
 import { GAME_PARAMS } from './constants.js';
 
@@ -23,8 +36,7 @@ export function createHUD() {
 export function updateLivesDisplay() {
     const livesDiv = document.getElementById('health');
     if (livesDiv) {
-        const livesText = '█'.repeat(state.lives) + '░'.repeat(Math.max(0, 5 - state.lives));
-        livesDiv.innerHTML = `LIVES: ${livesText}`;
+        livesDiv.textContent = `LIVES ${state.lives}`;
         livesDiv.style.color = state.playerInvulnerable ? '#ffff00' : (state.lives <= 1 ? '#ff0000' : '#00ff00');
     }
 }
@@ -93,7 +105,20 @@ export function updateWaveDisplay() {
     const scoreDiv = document.getElementById('score');
     if (scoreDiv) {
         const formattedScore = state.score.toString().padStart(6, '0');
-        scoreDiv.innerHTML = `WAVE: ${state.currentWave} | SCORE: ${formattedScore} | ENEMIES: ${state.enemiesRemaining}`;
+        scoreDiv.textContent = `SCORE ${formattedScore}`;
+    }
+
+    const hiScoreDiv = document.getElementById('hiScore');
+    if (hiScoreDiv) {
+        const formattedHighScore = state.highScore.toString().padStart(6, '0');
+        hiScoreDiv.textContent = `HI-SCORE ${formattedHighScore}`;
+    }
+
+    const waveDiv = document.getElementById('waveInfo');
+    if (waveDiv) {
+        const enemies = Math.max(0, state.enemiesRemaining);
+        const formattedEnemies = enemies.toString().padStart(2, '0');
+        waveDiv.textContent = `WAVE ${state.currentWave}  ENEMY ${formattedEnemies}`;
     }
 }
 
@@ -153,4 +178,3 @@ function createWaveFlash() {
         }
     }, 30);
 }
-

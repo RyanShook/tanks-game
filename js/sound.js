@@ -1,3 +1,16 @@
+/**
+ * BATTLE ZONE AUDIO SYSTEM
+ * 
+ * Audio management for authentic arcade sound effects
+ * 
+ * Key Features:
+ * - Three.js positional audio system
+ * - Arcade-style sound effects
+ * - Background engine sounds
+ * - Explosion and weapon audio
+ * - Wave progression audio cues
+ */
+
 import * as THREE from 'three';
 
 const audioListener = new THREE.AudioListener();
