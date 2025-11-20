@@ -14,6 +14,12 @@
 import * as state from './state.js';
 import { GAME_PARAMS } from './constants.js';
 
+const POWER_UP_LABELS = {
+    shield: 'SHIELD',
+    rapidFire: 'RAPID FIRE',
+    repair: '+1 LIFE',
+};
+
 export function createHUD() {
     // Use existing HTML elements instead of creating new ones
     const radar = document.getElementById('radar');
@@ -119,6 +125,28 @@ export function updateWaveDisplay() {
         const enemies = Math.max(0, state.enemiesRemaining);
         const formattedEnemies = enemies.toString().padStart(2, '0');
         waveDiv.textContent = `WAVE ${state.currentWave}  ENEMY ${formattedEnemies}`;
+    }
+}
+
+export function updatePowerUpDisplay() {
+    const powerUpDiv = document.getElementById('powerUps');
+    if (!powerUpDiv) return;
+
+    const now = Date.now();
+    const activeEntries = Object.entries(state.activePowerUps)
+        .filter(([, expiresAt]) => expiresAt > now)
+        .map(([type, expiresAt]) => {
+            const label = POWER_UP_LABELS[type] || type.toUpperCase();
+            const remaining = Math.max(0, (expiresAt - now) / 1000).toFixed(1);
+            return `${label} ${remaining}s`;
+        });
+
+    if (activeEntries.length === 0) {
+        powerUpDiv.textContent = 'POWERUPS NONE';
+        powerUpDiv.classList.remove('power-ups--active');
+    } else {
+        powerUpDiv.textContent = activeEntries.join('   ');
+        powerUpDiv.classList.add('power-ups--active');
     }
 }
 

@@ -26,6 +26,7 @@ export let tanksDestroyed = 0;
 export let lastBonusLifeScore = 0;
 export let isGameOver = false;
 export let playerInvulnerable = false;
+export let invulnerableUntil = 0;
 export let radarContext;
 export let currentWave = 1;
 export let enemiesRemaining = 0;
@@ -34,6 +35,10 @@ export let handleKeyDown, handleKeyUp;
 // Removed healthLabel - not needed in authentic Battle Zone
 export let gameOverScreen;
 export let highScore = 0;
+export let powerUps = [];
+export let activePowerUps = {};
+export let fireCooldownModifier = 1;
+export let playerProjectileLimit = 1;
 
 
 export function setScene(s) { scene = s; }
@@ -45,6 +50,7 @@ export function setTankCannon(c) { tankCannon = c; }
 // Removed setPlayerHealth - not needed in authentic Battle Zone
 export function setGameOver(g) { isGameOver = g; }
 export function setPlayerInvulnerable(i) { playerInvulnerable = i; }
+export function setInvulnerableUntil(t) { invulnerableUntil = t; }
 export function setRadarContext(c) { radarContext = c; }
 export function setCurrentWave(w) { currentWave = w; }
 export function setEnemiesRemaining(e) { enemiesRemaining = e; }
@@ -67,3 +73,11 @@ export function setLastBonusLifeScore(s) { lastBonusLifeScore = s; }
 export function setHandleKeyDown(h) { handleKeyDown = h; }
 export function setHandleKeyUp(h) { handleKeyUp = h; }
 export function setHighScore(h) { highScore = h; }
+export function addPowerUp(p) { powerUps.push(p); }
+export function removePowerUp(p) { powerUps = powerUps.filter(item => item !== p); }
+export function clearPowerUps() { powerUps = []; }
+export function setActivePowerUps(powers) { activePowerUps = powers; }
+export function setActivePowerUp(name, expiresAt) { activePowerUps[name] = expiresAt; }
+export function clearActivePowerUp(name) { delete activePowerUps[name]; }
+export function setFireCooldownModifier(modifier) { fireCooldownModifier = modifier; }
+export function setPlayerProjectileLimit(limit) { playerProjectileLimit = limit; }

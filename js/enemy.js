@@ -22,6 +22,7 @@ import * as state from './state.js';
 import { createExplosion } from './effects.js';
 import { checkCollision } from './utils.js';
 import { projectilePool } from './projectile.js';
+import { maybeDropPowerUp } from './powerups.js';
 
 /**
  * ENEMY TANK CLASS
@@ -155,6 +156,7 @@ class EnemyTank {
             state.setScore(state.score + this.score);
             state.setTanksDestroyed(state.tanksDestroyed + 1);
             state.setEnemiesRemaining(state.enemiesRemaining - 1);
+            maybeDropPowerUp(this.body.position);
         }
     }
     
@@ -288,6 +290,7 @@ class EnemyMissile {
             state.setScore(state.score + this.score);
             state.setTanksDestroyed(state.tanksDestroyed + 1);
             state.setEnemiesRemaining(state.enemiesRemaining - 1);
+            maybeDropPowerUp(this.body.position);
         }
     }
     
@@ -417,6 +420,7 @@ class EnemySuperTank {
             state.setScore(state.score + this.score);
             state.setTanksDestroyed(state.tanksDestroyed + 1);
             state.setEnemiesRemaining(state.enemiesRemaining - 1);
+            maybeDropPowerUp(this.body.position);
         }
     }
     
@@ -500,6 +504,7 @@ class EnemyUFO {
             state.setScore(state.score + this.score);
             state.setTanksDestroyed(state.tanksDestroyed + 1);
             // UFO doesn't count towards wave completion
+            maybeDropPowerUp(this.body.position);
         }
     }
     
