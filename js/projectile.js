@@ -37,7 +37,7 @@ function showDamageFlash() {
  * Show/hide invulnerability indicator after player is hit
  * @param {boolean} show - Whether to show or hide the indicator
  */
-function showInvulnerabilityIndicator(show) {
+export function toggleInvulnerabilityIndicator(show) {
     const indicator = document.querySelector('.invulnerable-indicator');
     if (indicator) {
         if (show) {
@@ -51,6 +51,21 @@ function showInvulnerabilityIndicator(show) {
 // === PROJECTILE SYSTEM ===
 
 export let projectilePool;
+
+function grantInvulnerability(durationMs) {
+    const expiresAt = Date.now() + durationMs;
+    state.setInvulnerableUntil(Math.max(state.invulnerableUntil, expiresAt));
+    state.setPlayerInvulnerable(true);
+    toggleInvulnerabilityIndicator(true);
+
+    setTimeout(() => {
+        if (Date.now() >= state.invulnerableUntil) {
+            state.setPlayerInvulnerable(false);
+            state.setInvulnerableUntil(0);
+            toggleInvulnerabilityIndicator(false);
+        }
+    }, durationMs + 50);
+}
 
 /**
  * Initialize the projectile object pool system
@@ -92,9 +107,10 @@ export function fireProjectile() {
         return;
     }
 
-    // AUTHENTIC BATTLE ZONE: Only one projectile at a time!
-    const hasPlayerProjectile = state.projectiles.some(p => !p.userData.isEnemyProjectile);
-    if (hasPlayerProjectile) {
+    // AUTHENTIC BATTLE ZONE: Only one projectile at a time unless power-ups allow more
+    const activePlayerProjectiles = state.projectiles.filter(p => !p.userData.isEnemyProjectile).length;
+    const playerLimit = state.playerProjectileLimit || 1;
+    if (activePlayerProjectiles >= playerLimit) {
         console.log('❌ Cannot fire - already have player projectile in flight');
         return;
     }
@@ -194,16 +210,11 @@ export function updateProjectiles(gameOver) {
                     playSound('hit');
                     state.setLives(state.lives - 1);
                     showDamageFlash();
-                    
+
                     if (state.lives <= 0) {
                         gameOver();
                     } else {
-                        state.setPlayerInvulnerable(true);
-                        showInvulnerabilityIndicator(true);
-                        setTimeout(() => { 
-                            state.setPlayerInvulnerable(false); 
-                            showInvulnerabilityIndicator(false);
-                        }, 1500);
+                        grantInvulnerability(1500);
                         shakeCamera(2.0, 800);
                         createExplosion(state.tankBody.position, 0xff4444, 4.0);
                     }

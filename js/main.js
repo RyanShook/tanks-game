@@ -17,11 +17,12 @@ import { GAME_PARAMS } from './constants.js';
 import * as state from './state.js';
 import { initProjectiles, updateProjectiles, fireProjectile } from './projectile.js';
 import { initEffects, createExplosion, updateCameraShake } from './effects.js';
-import { createHUD, updateLivesDisplay, updateRadar, updateWaveDisplay, showWaveCompletionMessage } from './hud.js';
+import { createHUD, updateLivesDisplay, updateRadar, updateWaveDisplay, showWaveCompletionMessage, updatePowerUpDisplay } from './hud.js';
 import { initSounds, playSound } from './sound.js';
 import { createMountainRange, createHorizontalGrid, createObstacles } from './world.js';
 import { createPlayer, handleMovement, resetTracks } from './player.js';
 import { spawnWave } from './enemy.js';
+import { initPowerUps, rewardWaveClear, updatePowerUps, resetPowerUpTimers } from './powerups.js';
 
 /**
  * Initialize the game scene, renderer, and all game systems
@@ -60,6 +61,8 @@ function init() {
     createObstacles();      // Pyramids and blocks for cover
     createPlayer();         // Create player tank and camera setup
     createHUD();           // Radar, score, lives display (must be after canvas)
+    initPowerUps();        // Reset power-up system before play
+    resetPowerUpTimers();  // Schedule the first drop
 
     // === INITIAL WAVE ===
     spawnWave(state.currentWave);
@@ -78,7 +81,7 @@ function init() {
         if (event.code === 'Space') {
             event.preventDefault();
             const now = Date.now();
-            const fireRate = GAME_PARAMS.FIRE_COOLDOWN;
+            const fireRate = GAME_PARAMS.FIRE_COOLDOWN * state.fireCooldownModifier;
             if (now - lastFireTime > fireRate) {
                 fireProjectile();
                 lastFireTime = now;
@@ -96,7 +99,7 @@ function init() {
 
     const handleMouseClick = () => {
         const now = Date.now();
-        const fireRate = GAME_PARAMS.FIRE_COOLDOWN;
+        const fireRate = GAME_PARAMS.FIRE_COOLDOWN * state.fireCooldownModifier;
         if (now - lastFireTime > fireRate) {
             fireProjectile();
             lastFireTime = now;
@@ -133,15 +136,17 @@ function animate() {
         if (!state.isGameOver) {
             handleMovement();
             updateProjectiles(gameOver);
+            updatePowerUps();
             // Update all active enemies (tanks, missiles, supertanks)
             state.enemyTanks.filter(enemy => !enemy.isDestroyed).forEach(enemy => {
                 if (enemy.update) enemy.update();
             });
             updateRadar();
             updateWaveDisplay();
+            updatePowerUpDisplay();
             checkWaveCompletion();
         }
-        
+
         updateLivesDisplay();
         updateCameraShake(); // Update camera shake effect
         
@@ -294,6 +299,19 @@ function resetGameState() {
     }
     state.projectiles.length = 0;
 
+    // Clear power-ups from the field
+    state.powerUps.forEach(powerUp => state.scene.remove(powerUp));
+    state.clearPowerUps();
+    state.setActivePowerUps({});
+    state.setFireCooldownModifier(1);
+    state.setPlayerProjectileLimit(1);
+    state.setInvulnerableUntil(0);
+    const invulnerabilityIndicator = document.querySelector('.invulnerable-indicator');
+    if (invulnerabilityIndicator) {
+        invulnerabilityIndicator.classList.remove('active');
+    }
+    resetPowerUpTimers();
+
     // Clear all enemies
     for (const enemy of state.enemyTanks) {
         state.scene.remove(enemy.body);
@@ -324,10 +342,13 @@ function checkWaveCompletion() {
         if (typeof showWaveCompletionMessage === 'function') {
             showWaveCompletionMessage(waveBonus);
         }
-        
+
         // Play victory sound
         playSound('waveComplete');
-        
+
+        // Drop a reward to celebrate the clear
+        rewardWaveClear(completedWave);
+
         // Increase difficulty for next wave
         increaseDifficulty();
         
