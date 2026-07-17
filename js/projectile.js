@@ -84,19 +84,15 @@ export function initProjectiles(scene) {
  * Only one player projectile can exist at a time
  */
 export function fireProjectile() {
-    console.log('🎯 FireProjectile called!');
-    
     // === FIRING VALIDATION ===
     if (state.isGameOver) {
-        console.log('❌ Cannot fire - gameOver:', state.isGameOver);
-        return;
+        return false;
     }
 
     // AUTHENTIC BATTLE ZONE: Only one projectile at a time!
     const hasPlayerProjectile = state.projectiles.some(p => !p.userData.isEnemyProjectile);
     if (hasPlayerProjectile) {
-        console.log('❌ Cannot fire - already have player projectile in flight');
-        return;
+        return false;
     }
 
     // === FIRE PROJECTILE ===
@@ -118,7 +114,7 @@ export function fireProjectile() {
     
     // Position projectile directly in front of camera
     projectile.position.copy(cameraWorldPos);
-    projectile.position.y += 0.5;
+    projectile.position.y -= 0.2;
     
     // Calculate firing direction - completely level straight ahead
     const direction = new THREE.Vector3(0, 0, -1); // Forward direction
@@ -127,7 +123,7 @@ export function fireProjectile() {
     direction.normalize();
     
     // Move projectile forward so it's clearly visible
-    projectile.position.add(direction.clone().multiplyScalar(10));
+    projectile.position.add(direction.clone().multiplyScalar(3));
     
     // Set up projectile data
     projectile.userData.velocity = direction.multiplyScalar(GAME_PARAMS.PROJECTILE_SPEED);
@@ -138,25 +134,55 @@ export function fireProjectile() {
     state.scene.add(projectile);
     state.projectiles.push(projectile);
     
-    console.log('🚀 PROJECTILE CREATED AND FIRED!');
-    console.log('- Position:', projectile.position);
-    console.log('- Direction:', direction);
-    console.log('- Velocity:', projectile.userData.velocity);
-    console.log('- In scene:', projectile.parent === state.scene);
-    
     // Effects
     shakeCamera(0.8, 300);
     if (state.tankCannon) {
         state.tankCannon.rotation.x = -0.15;
         setTimeout(() => { state.tankCannon.rotation.x = 0; }, 150);
     }
+    return true;
 }
 
-export function updateProjectiles(gameOver) {
-    if (state.projectiles.length > 0) {
-        console.log('🔄 Updating', state.projectiles.length, 'projectiles');
+function releaseProjectile(projectile, index) {
+    if (projectile.userData.isEnemyProjectile) {
+        projectilePool.release(projectile);
+    } else {
+        state.scene.remove(projectile);
+        projectile.geometry?.dispose();
+        projectile.material?.dispose();
     }
-    
+    state.projectiles.splice(index, 1);
+}
+
+export function clearProjectiles() {
+    for (let i = state.projectiles.length - 1; i >= 0; i--) {
+        releaseProjectile(state.projectiles[i], i);
+    }
+}
+
+export function damagePlayer(gameOver) {
+    if (state.playerInvulnerable || state.isGameOver) return false;
+
+    playSound('hit');
+    state.setLives(state.lives - 1);
+    showDamageFlash();
+
+    if (state.lives <= 0) {
+        gameOver();
+    } else {
+        state.setPlayerInvulnerable(true);
+        showInvulnerabilityIndicator(true);
+        setTimeout(() => {
+            state.setPlayerInvulnerable(false);
+            showInvulnerabilityIndicator(false);
+        }, 1500);
+        shakeCamera(2.0, 800);
+        createExplosion(state.tankBody.position, 0xff4444, 4.0);
+    }
+    return true;
+}
+
+export function updateProjectiles(deltaSeconds, gameOver) {
     for (let i = state.projectiles.length - 1; i >= 0; i--) {
         const projectile = state.projectiles[i];
         
@@ -167,55 +193,22 @@ export function updateProjectiles(gameOver) {
         
         
         // Move projectile forward
-        projectile.position.add(projectile.userData.velocity);
-        projectile.userData.distanceTraveled += projectile.userData.velocity.length();
+        const frameDistance = projectile.userData.velocity.length() * deltaSeconds;
+        projectile.position.addScaledVector(projectile.userData.velocity, deltaSeconds);
+        projectile.userData.distanceTraveled += frameDistance;
 
         // Check if projectile hit ground or went too far
         if (projectile.position.y < -5 || projectile.userData.distanceTraveled > GAME_PARAMS.PROJECTILE_MAX_DISTANCE) {
-            console.log('💥 Projectile expired - distance:', projectile.userData.distanceTraveled, 'y-pos:', projectile.position.y);
             createExplosion(projectile.position, projectile.userData.isEnemyProjectile ? 0xff0000 : VECTOR_GREEN, 1.0);
-            
-            // Remove from scene and dispose geometry
-            if (projectile.parent) {
-                projectile.parent.remove(projectile);
-            }
-            if (projectile.geometry) projectile.geometry.dispose();
-            if (projectile.material) projectile.material.dispose();
-            
-            state.projectiles.splice(i, 1);
-            console.log('🗑️ Projectile removed. Remaining:', state.projectiles.length);
+            releaseProjectile(projectile, i);
             continue;
         }
 
         if (projectile.userData.isEnemyProjectile) {
             // Enemy projectile hitting player
             if (checkCollision(projectile, state.tankBody, 2.0)) {
-                if (!state.playerInvulnerable) {
-                    playSound('hit');
-                    state.setLives(state.lives - 1);
-                    showDamageFlash();
-                    
-                    if (state.lives <= 0) {
-                        gameOver();
-                    } else {
-                        state.setPlayerInvulnerable(true);
-                        showInvulnerabilityIndicator(true);
-                        setTimeout(() => { 
-                            state.setPlayerInvulnerable(false); 
-                            showInvulnerabilityIndicator(false);
-                        }, 1500);
-                        shakeCamera(2.0, 800);
-                        createExplosion(state.tankBody.position, 0xff4444, 4.0);
-                    }
-                }
-                // Remove projectile from scene
-                if (projectile.parent) {
-                    projectile.parent.remove(projectile);
-                }
-                if (projectile.geometry) projectile.geometry.dispose();
-                if (projectile.material) projectile.material.dispose();
-                
-                state.projectiles.splice(i, 1);
+                damagePlayer(gameOver);
+                releaseProjectile(projectile, i);
                 createExplosion(projectile.position, 0xff4444, 1.5);
                 continue;
             }
@@ -226,15 +219,9 @@ export function updateProjectiles(gameOver) {
                 if (!enemyTank.isDestroyed && checkCollision(projectile, enemyTank.body, 3.0)) {
                     playSound('hit');
                     enemyTank.takeDamage();
-                    // Remove projectile from scene
-                    if (projectile.parent) {
-                        projectile.parent.remove(projectile);
-                    }
-                    if (projectile.geometry) projectile.geometry.dispose();
-                    if (projectile.material) projectile.material.dispose();
-                    
-                    state.projectiles.splice(i, 1);
-                    createExplosion(projectile.position, VECTOR_GREEN, 3.0);
+                    const impactPosition = projectile.position.clone();
+                    releaseProjectile(projectile, i);
+                    createExplosion(impactPosition, VECTOR_GREEN, 3.0);
                     shakeCamera(1.0, 400);
                     hitEnemy = true;
                     break;

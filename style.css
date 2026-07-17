@@ -6,8 +6,21 @@
 
 body {
     overflow: hidden;
-    background: #000;
-    font-family: monospace;
+    background: #010403;
+    color: #79ff9c;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    cursor: crosshair;
+}
+
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 4000;
+    pointer-events: none;
+    opacity: 0.16;
+    background: repeating-linear-gradient(0deg, transparent 0 3px, rgba(0, 0, 0, 0.65) 3px 4px);
+    mix-blend-mode: multiply;
 }
 
 canvas {
@@ -96,13 +109,49 @@ canvas:not(#radar canvas) {
     transform: translate(-50%, -50%);
     color: #00ff00;
     font-family: monospace;
-    font-size: 48px;
+    width: min(620px, calc(100vw - 36px));
+    font-size: 16px;
     text-align: center;
-    background-color: rgba(0, 0, 0, 0.8);
-    padding: 40px;
-    border: 2px solid #00ff00;
+    background: linear-gradient(180deg, rgba(28, 0, 0, 0.94), rgba(4, 0, 0, 0.98));
+    padding: clamp(26px, 5vw, 44px);
+    border: 1px solid #00ff00;
     display: none;
-    z-index: 1000;
+    z-index: 2600;
+    box-shadow: 0 0 70px rgba(255, 0, 0, 0.18), inset 0 0 40px rgba(255, 0, 0, 0.05);
+}
+
+.game-over-title {
+    color: #ff5757;
+    font-size: clamp(34px, 6vw, 54px);
+    letter-spacing: 0.08em;
+    text-shadow: 0 0 18px rgba(255, 40, 40, 0.72);
+}
+
+.final-stats {
+    display: grid;
+    gap: 8px;
+    margin: 26px auto;
+    padding: 20px 0;
+    border-top: 1px solid rgba(0, 255, 0, 0.25);
+    border-bottom: 1px solid rgba(0, 255, 0, 0.25);
+    color: #a3ffae;
+    font-size: 18px;
+    letter-spacing: 0.08em;
+}
+
+.game-over-message {
+    color: #ff6767;
+    font-size: 14px;
+    letter-spacing: 0.26em;
+}
+
+.restart-instructions {
+    display: flex;
+    justify-content: center;
+    gap: 26px;
+    margin-top: 18px;
+    color: #62bd72;
+    font-size: 12px;
 }
 
 #startScreen {
@@ -111,7 +160,9 @@ canvas:not(#radar canvas) {
     left: 0;
     width: 100vw;
     height: 100vh;
-    background-color: rgba(0, 0, 0, 0.9);
+    background:
+        radial-gradient(circle at 50% 45%, rgba(0, 255, 102, 0.08), transparent 42%),
+        rgba(0, 5, 3, 0.93);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -119,18 +170,107 @@ canvas:not(#radar canvas) {
 }
 
 #startContainer {
+    position: relative;
+    width: min(680px, calc(100vw - 40px));
     text-align: center;
-    color: #00ff00;
-    font-family: monospace;
-    border: 2px solid #00ff00;
-    padding: 40px;
-    background-color: rgba(0, 0, 0, 0.8);
+    color: #66ff90;
+    border: 1px solid rgba(75, 255, 126, 0.72);
+    padding: clamp(26px, 5vh, 48px) clamp(24px, 6vw, 70px);
+    background: linear-gradient(180deg, rgba(4, 22, 12, 0.96), rgba(0, 7, 4, 0.98));
+    box-shadow: 0 0 80px rgba(0, 255, 91, 0.1), inset 0 0 36px rgba(0, 255, 91, 0.04);
+    clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 18px, 100% calc(100% - 18px), calc(100% - 18px) 100%, 18px 100%, 0 calc(100% - 18px), 0 18px);
 }
 
+#startContainer::before,
+#startContainer::after {
+    content: '';
+    position: absolute;
+    top: 18px;
+    width: 54px;
+    height: 2px;
+    background: #00ff66;
+    box-shadow: 0 8px #00ff66;
+}
+
+#startContainer::before { left: 22px; }
+#startContainer::after { right: 22px; }
+
 #startContainer h1 {
-    font-size: 48px;
-    margin-bottom: 20px;
-    text-shadow: 0 0 10px #00ff00;
+    font-size: clamp(46px, 9vw, 86px);
+    line-height: 0.9;
+    letter-spacing: 0.12em;
+    margin: 10px 0 7px;
+    text-indent: 0.12em;
+    text-shadow: 0 0 12px rgba(0, 255, 102, 0.9), 0 0 36px rgba(0, 255, 102, 0.35);
+}
+
+.eyebrow,
+.version,
+.start-hint {
+    color: #39b85d;
+    font-size: 12px;
+    letter-spacing: 0.24em;
+}
+
+.version {
+    color: #b6ffc8;
+    margin-bottom: 28px;
+}
+
+.briefing {
+    padding-bottom: 12px;
+    color: #e2ffe8;
+    letter-spacing: 0.2em;
+}
+
+.controls {
+    display: grid;
+    gap: 8px;
+    width: min(440px, 100%);
+    margin: 0 auto 20px;
+    padding: 16px 0;
+    border-top: 1px solid rgba(0, 255, 102, 0.22);
+    border-bottom: 1px solid rgba(0, 255, 102, 0.22);
+}
+
+.controls > div {
+    display: grid;
+    grid-template-columns: 1fr 1.25fr;
+    align-items: center;
+    gap: 18px;
+    text-align: right;
+    color: #79ff9c;
+    font-size: 13px;
+}
+
+.controls .control-label {
+    text-align: left;
+    color: #329653;
+    letter-spacing: 0.12em;
+}
+
+.controls .key-group { text-align: right; color: #59d778; }
+
+kbd {
+    display: inline-block;
+    padding: 2px 6px;
+    border: 1px solid rgba(108, 255, 147, 0.45);
+    border-radius: 2px;
+    background: rgba(0, 255, 102, 0.05);
+    color: #b6ffc8;
+    font: inherit;
+}
+
+.objective {
+    color: #c7ffd6;
+    letter-spacing: 0.12em;
+    margin-bottom: 8px;
+}
+
+.enemy-types {
+    color: #318849;
+    font-size: 12px;
+    line-height: 1.6;
 }
 
 #startContainer p {
@@ -141,20 +281,25 @@ canvas:not(#radar canvas) {
 
 #startButton {
     font-family: monospace;
-    font-size: 24px;
-    padding: 15px 30px;
-    background: transparent;
-    color: #00ff00;
-    border: 2px solid #00ff00;
+    font-size: 18px;
+    letter-spacing: 0.18em;
+    margin-top: 22px;
+    padding: 14px 30px;
+    background: rgba(0, 255, 102, 0.08);
+    color: #aaffbd;
+    border: 1px solid #58ff84;
     cursor: pointer;
     transition: all 0.3s;
 }
 
 #startButton:hover {
-    background-color: #00ff00;
-    color: #000000;
-    box-shadow: 0 0 20px #00ff00;
+    background-color: #52ff80;
+    color: #001d0b;
+    box-shadow: 0 0 28px rgba(0, 255, 102, 0.6);
 }
+
+.start-hint { margin-top: 13px; font-size: 9px; }
+.highscore { margin-top: 18px; color: #56bd71; font-size: 12px; letter-spacing: 0.12em; }
 
 .periscope-frame {
     position: fixed;
@@ -251,12 +396,67 @@ canvas:not(#radar canvas) {
     font-family: monospace;
     font-size: 18px;
     z-index: 1000;
-    animation: blink 0.5s infinite;
     opacity: 0;
 }
 
 .invulnerable-indicator.active {
     opacity: 1;
+    animation: blink 0.5s infinite;
+}
+
+#combatMessage {
+    position: fixed;
+    top: 135px;
+    left: 50%;
+    z-index: 2200;
+    transform: translate(-50%, -8px);
+    color: #d9ffe3;
+    font-size: 14px;
+    letter-spacing: 0.22em;
+    opacity: 0;
+    transition: opacity 160ms ease, transform 160ms ease;
+    text-shadow: 0 0 14px #00ff66;
+    pointer-events: none;
+}
+
+#combatMessage.active {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+.modal-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 2800;
+    display: none;
+    place-items: center;
+    background: rgba(0, 6, 3, 0.76);
+    backdrop-filter: blur(2px);
+}
+
+.modal-screen.active { display: grid; }
+
+.modal-panel {
+    min-width: min(480px, calc(100vw - 40px));
+    padding: 34px;
+    text-align: center;
+    color: #6dff96;
+    border: 1px solid #45e970;
+    background: rgba(0, 12, 6, 0.97);
+    box-shadow: 0 0 55px rgba(0, 255, 102, 0.14);
+}
+
+.modal-kicker { color: #2b8b47; font-size: 11px; letter-spacing: 0.22em; }
+.modal-title { margin: 10px 0 20px; font-size: 46px; letter-spacing: 0.2em; text-indent: 0.2em; }
+#resumeButton { margin-top: 24px; padding: 10px 18px; border: 1px solid #56ff83; color: #86ffa5; background: transparent; font: inherit; cursor: pointer; }
+
+@media (max-height: 760px) {
+    #startContainer { padding-top: 22px; padding-bottom: 22px; }
+    #startContainer h1 { font-size: 52px; }
+    .version { margin-bottom: 14px; }
+    .controls { padding: 10px 0; margin-bottom: 12px; }
+    #startButton { margin-top: 12px; }
+    .highscore { margin-top: 10px; }
 }
 
 @keyframes blink {

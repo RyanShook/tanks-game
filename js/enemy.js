@@ -32,7 +32,8 @@ class EnemyTank {
         this.type = 'tank';
         this.scene = scene;
         this.isDestroyed = false;
-        this.lastShotTime = Date.now();
+        this.shotCooldown = GAME_PARAMS.TANK_SHOT_INTERVAL / 1000;
+        this.preferredRange = 36 + Math.random() * 14;
         this.score = GAME_PARAMS.TANK_SCORE;
         
         // Create authentic tank wireframe
@@ -78,22 +79,24 @@ class EnemyTank {
         this.turret.add(this.cannon);
     }
     
-    update() {
+    update(deltaSeconds = 1 / 60) {
         if (this.isDestroyed) return;
-        
-        const now = Date.now();
+
+        this.shotCooldown -= deltaSeconds;
+        const difficulty = 1 + Math.min(0.65, (state.currentWave - 1) * 0.06);
+        const movementStep = GAME_PARAMS.TANK_SPEED * difficulty * deltaSeconds;
         const previousPosition = this.body.position.clone();
         const toPlayer = state.tankBody.position.clone().sub(this.body.position);
         const distanceToPlayer = toPlayer.length();
         
         // Authentic Battlezone AI - more aggressive and strategic
-        const optimalDistance = 30 + Math.random() * 20;
+        const optimalDistance = this.preferredRange;
         
         if (distanceToPlayer > optimalDistance) {
             // Approach with slight evasive maneuvering
             const approachAngle = Math.atan2(toPlayer.z, toPlayer.x) + (Math.random() - 0.5) * 0.5;
-            const targetX = this.body.position.x + Math.cos(approachAngle) * GAME_PARAMS.TANK_SPEED;
-            const targetZ = this.body.position.z + Math.sin(approachAngle) * GAME_PARAMS.TANK_SPEED;
+            const targetX = this.body.position.x + Math.cos(approachAngle) * movementStep;
+            const targetZ = this.body.position.z + Math.sin(approachAngle) * movementStep;
             
             this.body.position.x = targetX;
             this.body.position.z = targetZ;
@@ -101,12 +104,12 @@ class EnemyTank {
         } else if (distanceToPlayer < optimalDistance - 10) {
             // Back away while keeping gun trained on player
             this.body.lookAt(state.tankBody.position);
-            this.body.translateZ(-GAME_PARAMS.TANK_SPEED * 0.7);
+            this.body.translateZ(-movementStep * 0.7);
         } else {
             // Strafe around player
             const strafeAngle = Math.atan2(toPlayer.z, toPlayer.x) + Math.PI / 2;
-            this.body.position.x += Math.cos(strafeAngle) * GAME_PARAMS.TANK_SPEED * 0.5;
-            this.body.position.z += Math.sin(strafeAngle) * GAME_PARAMS.TANK_SPEED * 0.5;
+            this.body.position.x += Math.cos(strafeAngle) * movementStep * 0.5;
+            this.body.position.z += Math.sin(strafeAngle) * movementStep * 0.5;
         }
         
         // Smart obstacle avoidance
@@ -114,8 +117,8 @@ class EnemyTank {
             this.body.position.copy(previousPosition);
             // Try to go around obstacle
             const avoidAngle = Math.atan2(toPlayer.z, toPlayer.x) + (Math.random() < 0.5 ? 1 : -1) * Math.PI / 3;
-            this.body.position.x += Math.cos(avoidAngle) * GAME_PARAMS.TANK_SPEED;
-            this.body.position.z += Math.sin(avoidAngle) * GAME_PARAMS.TANK_SPEED;
+            this.body.position.x += Math.cos(avoidAngle) * movementStep;
+            this.body.position.z += Math.sin(avoidAngle) * movementStep;
         }
         
         // Keep within bounds
@@ -126,9 +129,9 @@ class EnemyTank {
         this.turret.lookAt(state.tankBody.position);
         
         // Aggressive firing like original Battlezone
-        if (now - this.lastShotTime > GAME_PARAMS.TANK_SHOT_INTERVAL && distanceToPlayer < 120) {
+        if (this.shotCooldown <= 0 && distanceToPlayer < 120) {
             this.fireAtPlayer();
-            this.lastShotTime = now;
+            this.shotCooldown = GAME_PARAMS.TANK_SHOT_INTERVAL / 1000 / difficulty;
         }
     }
     
@@ -241,7 +244,7 @@ class EnemyMissile {
         this.scene = scene;
         this.isDestroyed = false;
         this.score = GAME_PARAMS.MISSILE_SCORE;
-        this.speed = 0.1;
+        this.speed = 18;
         this.target = state.tankBody.position.clone();
         
         this.createMissileGeometry(position);
@@ -260,25 +263,19 @@ class EnemyMissile {
         this.body.rotation.x = Math.PI;
     }
     
-    update() {
+    update(deltaSeconds = 1 / 60, onImpact) {
         if (this.isDestroyed) return;
-        
-        // Missile flies straight toward initial target position
+        this.target.lerp(state.tankBody.position, Math.min(1, deltaSeconds * 1.5));
         const direction = this.target.clone().sub(this.body.position).normalize();
-        this.body.position.add(direction.multiplyScalar(this.speed));
+        this.body.position.addScaledVector(direction, this.speed * deltaSeconds);
         this.body.lookAt(this.target);
-        
-        // Check if missile hit ground
-        if (this.body.position.y <= 0) {
-            createExplosion(this.body.position, VECTOR_RED, 2);
-            this.destroy();
-        }
-        
-        // Check if missile reached target area
-        const distanceToTarget = this.body.position.distanceTo(this.target);
+
+        const distanceToTarget = this.body.position.distanceTo(state.tankBody.position);
         if (distanceToTarget < 3) {
             createExplosion(this.body.position, VECTOR_RED, 4);
+            if (onImpact) onImpact();
             this.destroy();
+            state.setEnemiesRemaining(Math.max(0, state.enemiesRemaining - 1));
         }
     }
     
@@ -304,7 +301,8 @@ class EnemySuperTank {
         this.type = 'supertank';
         this.scene = scene;
         this.isDestroyed = false;
-        this.lastShotTime = Date.now();
+        this.shotCooldown = GAME_PARAMS.TANK_SHOT_INTERVAL * 0.7 / 1000;
+        this.preferredRange = 55 + Math.random() * 18;
         this.score = GAME_PARAMS.SUPERTANK_SCORE;
         this.health = 2; // Takes 2 hits
         
@@ -348,26 +346,28 @@ class EnemySuperTank {
         this.turret.add(this.cannon2);
     }
     
-    update() {
+    update(deltaSeconds = 1 / 60) {
         if (this.isDestroyed) return;
-        
-        const now = Date.now();
+
+        this.shotCooldown -= deltaSeconds;
+        const difficulty = 1 + Math.min(0.65, (state.currentWave - 1) * 0.06);
+        const movementStep = GAME_PARAMS.TANK_SPEED * difficulty * deltaSeconds;
         const previousPosition = this.body.position.clone();
         const toPlayer = state.tankBody.position.clone().sub(this.body.position);
         const distanceToPlayer = toPlayer.length();
         
         // More defensive AI - keeps distance
-        const optimalDistance = 50 + Math.random() * 30;
+        const optimalDistance = this.preferredRange;
         
         if (distanceToPlayer < optimalDistance) {
             // Back away while firing
             this.body.lookAt(state.tankBody.position);
-            this.body.translateZ(-GAME_PARAMS.TANK_SPEED * 0.5);
+            this.body.translateZ(-movementStep * 0.5);
         } else {
             // Strafe to maintain distance
             const strafeAngle = Math.atan2(toPlayer.z, toPlayer.x) + Math.PI / 2;
-            this.body.position.x += Math.cos(strafeAngle) * GAME_PARAMS.TANK_SPEED * 0.3;
-            this.body.position.z += Math.sin(strafeAngle) * GAME_PARAMS.TANK_SPEED * 0.3;
+            this.body.position.x += Math.cos(strafeAngle) * movementStep * 0.3;
+            this.body.position.z += Math.sin(strafeAngle) * movementStep * 0.3;
         }
         
         // Obstacle avoidance
@@ -382,9 +382,9 @@ class EnemySuperTank {
         this.turret.lookAt(state.tankBody.position);
         
         // Faster firing rate
-        if (now - this.lastShotTime > GAME_PARAMS.TANK_SHOT_INTERVAL * 0.7 && distanceToPlayer < 150) {
+        if (this.shotCooldown <= 0 && distanceToPlayer < 150) {
             this.fireAtPlayer();
-            this.lastShotTime = now;
+            this.shotCooldown = GAME_PARAMS.TANK_SHOT_INTERVAL * 0.7 / 1000 / difficulty;
         }
     }
     
@@ -467,13 +467,13 @@ class EnemyUFO {
         this.body.position.y = this.hoverHeight;
     }
     
-    update() {
+    update(deltaSeconds = 1 / 60) {
         if (this.isDestroyed) return;
         
         // UFO behavior: Slowly drift across the battlefield, doesn't attack
         // Authentic Battle Zone: UFO moves in straight line and can be shot for bonus points
-        this.body.position.x += this.hoverDirection * this.speed;
-        this.body.position.z += (Math.random() - 0.5) * this.speed * 0.3;
+        this.body.position.x += this.hoverDirection * this.speed * deltaSeconds;
+        this.body.position.z += (Math.random() - 0.5) * this.speed * deltaSeconds * 0.3;
         
         // Keep within bounds, reverse direction if needed
         if (Math.abs(this.body.position.x) > GAME_PARAMS.WORLD_BOUNDS * 0.8) {
@@ -481,8 +481,8 @@ class EnemyUFO {
         }
         
         // Gentle floating motion
-        this.body.position.y = this.hoverHeight + Math.sin(Date.now() * 0.001) * 2;
-        this.body.rotation.y += 0.01;
+        this.body.position.y = this.hoverHeight + Math.sin(performance.now() * 0.001) * 2;
+        this.body.rotation.y += 0.6 * deltaSeconds;
         
         // Remove UFO if it gets too far away
         const distanceFromCenter = Math.sqrt(

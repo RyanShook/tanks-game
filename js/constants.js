@@ -18,24 +18,26 @@ export const VECTOR_YELLOW = 0xffff00;
 
 // Authentic Battlezone Game Parameters
 export const GAME_PARAMS = {
-    // Player Tank Settings - dual track controls like the arcade cabinet
-    TRACK_MAX_SPEED: 0.35,
-    TRACK_ACCELERATION: 0.012,
-    TRACK_DECELERATION: 0.02,
-    TRACK_TURN_FACTOR: 0.015,
+    // Player tank settings. Values are expressed per second so the game feels
+    // the same on 60 Hz, 120 Hz, and throttled displays.
+    DRIVE_MAX_SPEED: 22,
+    DRIVE_RESPONSE: 7,
+    TURN_MAX_SPEED: 1.45,
+    TURN_RESPONSE: 10,
+    MOUSE_SENSITIVITY: 0.0022,
 
     // Lives System (Authentic Battlezone)
     STARTING_LIVES: 3,
     BONUS_LIFE_SCORE: 15000,
     
     // Projectile Settings - Authentic Battlezone physics
-    PROJECTILE_SPEED: 2.0,
+    PROJECTILE_SPEED: 120,
     PROJECTILE_MAX_DISTANCE: 300,
     PROJECTILE_GRAVITY: 0.0,
     FIRE_COOLDOWN: 100,
     
     // Enemy Settings - Authentic 1980 Battle Zone speeds
-    TANK_SPEED: 0.04,
+    TANK_SPEED: 3.1,
     
     TANK_SHOT_INTERVAL: 3000,
     

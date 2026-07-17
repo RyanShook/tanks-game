@@ -67,8 +67,13 @@ export function updateRadar() {
             const distance = Math.sqrt(dx * dx + dz * dz);
             
             if (distance < GAME_PARAMS.WORLD_BOUNDS * 0.8) {
-                const x = 160 + (dx / (GAME_PARAMS.WORLD_BOUNDS * 0.8)) * 140;
-                const y = 16 + (dz / (GAME_PARAMS.WORLD_BOUNDS * 0.8)) * 12;
+                // Rotate contacts into the player's local frame so the top of
+                // the scanner always means "ahead".
+                const heading = state.tankBody.rotation.y;
+                const localX = dx * Math.cos(heading) - dz * Math.sin(heading);
+                const localZ = dx * Math.sin(heading) + dz * Math.cos(heading);
+                const x = 160 + (localX / (GAME_PARAMS.WORLD_BOUNDS * 0.8)) * 140;
+                const y = 16 + (localZ / (GAME_PARAMS.WORLD_BOUNDS * 0.8)) * 12;
                 
                 // Different radar signatures for different enemy types
                 state.radarContext.fillStyle = '#00ff00';

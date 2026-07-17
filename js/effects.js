@@ -95,10 +95,10 @@ export function shakeCamera(intensity = 0.5, duration = 300) {
     }
 }
 
-export function updateCameraShake() {
+export function updateCameraShake(deltaSeconds = 1 / 60) {
     if (cameraShake.intensity <= 0) return;
     
-    cameraShake.elapsed += 16; // Assume ~60fps
+    cameraShake.elapsed += deltaSeconds * 1000;
     const progress = cameraShake.elapsed / cameraShake.duration;
     
     if (progress >= 1) {
@@ -121,4 +121,3 @@ export function updateCameraShake() {
         state.camera.position.add(new THREE.Vector3(shakeX, shakeY, shakeZ));
     }
 }
-

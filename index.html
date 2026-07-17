@@ -3,22 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Battlezone - Authentic 1980 Arcade Recreation</title>
+    <title>Battlezone: Vector Assault</title>
+    <meta name="theme-color" content="#020805" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⌖</text></svg>" />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
     <div id="startScreen">
       <div id="startContainer">
+        <div class="eyebrow">VECTOR COMMAND // 1980–2026</div>
         <h1>BATTLEZONE</h1>
-        <div class="version">AUTHENTIC 1980 ARCADE RECREATION</div>
+        <div class="version">VECTOR ASSAULT</div>
         <div class="instructions">
-          <div>ENTER THE BATTLEFIELD</div>
+          <div class="briefing">ENTER THE BATTLEFIELD</div>
           <div class="controls">
-            <div>Q + W &mdash; BOTH TREADS FORWARD</div>
-            <div>A + S &mdash; BOTH TREADS REVERSE</div>
-            <div>Q + S / A + W &mdash; PIVOT RIGHT / LEFT</div>
-            <div>SPACE &mdash; FIRE CANNON</div>
-            <div>ARROW UP/DOWN MIRROR RIGHT TREAD</div>
+            <div><span class="key-group"><kbd>WASD</kbd> / <kbd>ARROWS</kbd></span><span class="control-label">DRIVE &amp; STEER</span></div>
+            <div><span class="key-group"><kbd>MOUSE</kbd></span><span class="control-label">AIM HULL</span></div>
+            <div><span class="key-group"><kbd>CLICK</kbd> / <kbd>SPACE</kbd></span><span class="control-label">FIRE CANNON</span></div>
+            <div><span class="key-group"><kbd>P</kbd> / <kbd>ESC</kbd></span><span class="control-label">PAUSE</span></div>
+            <div><span class="key-group"><kbd>F</kbd></span><span class="control-label">FULLSCREEN</span></div>
           </div>
           <div class="objective">DESTROY ALL ENEMY VEHICLES</div>
           <div class="enemy-types">
@@ -27,7 +30,8 @@
             <div>BONUS LIFE EVERY 15,000 POINTS</div>
           </div>
         </div>
-        <button id="startButton">PRESS TO START</button>
+        <button id="startButton">DEPLOY TANK</button>
+        <div class="start-hint">CLICK THE BATTLEFIELD TO CAPTURE MOUSE</div>
         <div class="highscore">HIGH SCORE: <span id="highScoreDisplay">0000</span></div>
       </div>
     </div>
@@ -39,6 +43,15 @@
     <div id="health">LIVES 3</div>
     <div class="damage-flash"></div>
     <div class="invulnerable-indicator">SHIELD ACTIVE</div>
+    <div id="combatMessage" aria-live="polite"></div>
+    <div id="pauseScreen" class="modal-screen">
+      <div class="modal-panel">
+        <div class="modal-kicker">TACTICAL LINK SUSPENDED</div>
+        <div class="modal-title">PAUSED</div>
+        <div>PRESS <kbd>P</kbd> OR <kbd>ESC</kbd> TO RESUME</div>
+        <button id="resumeButton">RESUME MISSION</button>
+      </div>
+    </div>
     <div id="gameOver">
       <div id="gameOverContainer">
         <div class="game-over-title">TANK DESTROYED</div>

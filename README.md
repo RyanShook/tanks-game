@@ -1,6 +1,6 @@
-# 3D Wireframe Tanks vs Spaceships
+# Battlezone: Vector Assault
 
-A retro-style 3D tank combat game built with Three.js, featuring wireframe graphics inspired by classic arcade games like Battlezone. Fight against enemy tanks and alien spaceships in progressive waves!
+A polished browser recreation of classic vector tank combat, built with Three.js. It keeps Battlezone's stark green wireframe battlefield while adding responsive Windows-style controls, mouse steering, tactical radar, and progressive enemy waves.
 
 ## 🎮 Play Now
 
@@ -11,7 +11,7 @@ A retro-style 3D tank combat game built with Three.js, featuring wireframe graph
 ## ✨ Features
 
 ### Combat System
-- **First-person tank combat** with realistic physics
+- **First-person tank combat** with smooth, frame-rate-independent movement
 - **Wave-based gameplay** with progressive difficulty
 - **Multiple enemy types**: Ground tanks, flying saucers, and space fighters
 - **Physics-based projectiles** with gravity and ballistics
@@ -32,12 +32,12 @@ A retro-style 3D tank combat game built with Three.js, featuring wireframe graph
 
 ## 🎯 Controls
 
-- **`Q` + `W`** - Drive both treads forward
-- **`A` + `S`** - Drive both treads in reverse  
-- **`Q` + `S`** / **`A` + `W`** - Pivot right / left
-- **`Arrow Up` / `Arrow Down`** - Mirror the right tread controls
-- **`SPACE`** - Fire cannon
-- **`R`** - Restart game (when game over)
+- **`WASD` / arrow keys** - Drive and steer
+- **Mouse** - Steer while the pointer is captured
+- **Click / `Space`** - Fire cannon
+- **`P` / `Esc`** - Pause or resume
+- **`F`** - Toggle fullscreen
+- **`R` / `Enter`** - Restart after game over
 
 ## 🏆 Scoring
 

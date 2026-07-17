@@ -13,4 +13,8 @@ Thumbs.db
 npm-debug.log*
 
 # Dependencies
-node_modules/ 
+node_modules/
+
+# Local research and browser-test artifacts
+.firecrawl/
+output/

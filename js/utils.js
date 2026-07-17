@@ -47,10 +47,8 @@ export class ObjectPool {
                 object.userData = {};
             }
             
-            // Remove from parent if attached
-            if (object.parent) {
-                object.parent.remove(object);
-            }
+            // Pooled render objects stay attached to the scene and are hidden;
+            // acquiring them later makes them visible again without reparenting.
         }
     }
 }

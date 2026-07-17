@@ -15,13 +15,24 @@
 import * as THREE from 'three';
 import { GAME_PARAMS } from './constants.js';
 import * as state from './state.js';
-import { initProjectiles, updateProjectiles, fireProjectile } from './projectile.js';
+import { initProjectiles, updateProjectiles, fireProjectile, clearProjectiles, damagePlayer } from './projectile.js';
 import { initEffects, createExplosion, updateCameraShake } from './effects.js';
 import { createHUD, updateLivesDisplay, updateRadar, updateWaveDisplay, showWaveCompletionMessage } from './hud.js';
 import { initSounds, playSound } from './sound.js';
-import { createMountainRange, createHorizontalGrid, createObstacles } from './world.js';
-import { createPlayer, handleMovement, resetTracks } from './player.js';
+import { createMountainRange, createObstacles } from './world.js';
+import { createPlayer, handleMovement, resetTracks, queueMouseTurn, getMovementState } from './player.js';
 import { spawnWave } from './enemy.js';
+
+let gameStarted = false;
+let isPaused = false;
+let animationFrameId = null;
+let lastFrameTime = 0;
+let simulationTime = 0;
+let lastFireTime = -Infinity;
+let waveTransitionActive = false;
+let waveTimer = null;
+let combatMessageTimer = null;
+let audioInitialized = false;
 
 /**
  * Initialize the game scene, renderer, and all game systems
@@ -47,10 +58,10 @@ function init() {
     // Camera position set when player tank is created
 
     // === RENDERER SETUP ===
-    // No antialias for authentic pixelated vector look
-    state.setRenderer(new THREE.WebGLRenderer({ antialias: false, alpha: false }));
+    state.setRenderer(new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' }));
     state.renderer.setSize(window.innerWidth, window.innerHeight);
-    state.renderer.setPixelRatio(1); // Lock to 1:1 for authentic pixel-perfect vectors
+    state.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    state.renderer.domElement.setAttribute('aria-label', 'Battlezone battlefield');
     document.body.appendChild(state.renderer.domElement); // Canvas must be first for proper layering
 
     // === WORLD CREATION ===
@@ -61,63 +72,62 @@ function init() {
     createPlayer();         // Create player tank and camera setup
     createHUD();           // Radar, score, lives display (must be after canvas)
 
-    // === INITIAL WAVE ===
-    spawnWave(state.currentWave);
-
-    // Game initialization complete
-
-    // === AUTHENTIC BATTLE ZONE CONTROLS ===
-    // Single-shot firing system with cooldown (like original arcade)
-    let lastFireTime = 0;
-
-    // Keyboard input handlers - dual joystick simulation
+    // Keyboard input handlers
     state.setHandleKeyDown((event) => {
-        state.keyboardState[event.code] = true;
-        
-        // SPACE = Fire cannon (like original fire button)
-        if (event.code === 'Space') {
+        if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.code)) {
             event.preventDefault();
-            const now = Date.now();
-            const fireRate = GAME_PARAMS.FIRE_COOLDOWN;
-            if (now - lastFireTime > fireRate) {
-                fireProjectile();
-                lastFireTime = now;
-            }
         }
+
+        if (!gameStarted && (event.code === 'Enter' || event.code === 'Space')) {
+            startGame();
+            return;
+        }
+        if (state.isGameOver) {
+            if (event.code === 'KeyR' || event.code === 'Enter') resetGame();
+            if (event.code === 'Escape') returnToMainMenu();
+            return;
+        }
+        if (gameStarted && (event.code === 'KeyP' || event.code === 'Escape')) {
+            togglePause();
+            return;
+        }
+        if (event.code === 'KeyF') {
+            toggleFullscreen();
+            return;
+        }
+        if (!gameStarted || isPaused) return;
+
+        state.keyboardState[event.code] = true;
+        if (event.code === 'Space') attemptFire();
     });
 
     state.setHandleKeyUp((event) => {
         state.keyboardState[event.code] = false;
     });
 
-    // === MOUSE CONTROLS (FIRING ONLY) ===
-    // AUTHENTIC 1980 BATTLE ZONE: NO mouse look - only firing!
-    // Original arcade used dual joysticks only - no mouse movement
-
-    const handleMouseClick = () => {
-        const now = Date.now();
-        const fireRate = GAME_PARAMS.FIRE_COOLDOWN;
-        if (now - lastFireTime > fireRate) {
-            fireProjectile();
-            lastFireTime = now;
-        }
-    };
-
-    // Explicit mouse movement blocker - prevents any mouse look
-    const blockMouseMovement = (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        return false;
-    };
-
     // === EVENT LISTENERS ===
     document.addEventListener('keydown', state.handleKeyDown);
     document.addEventListener('keyup', state.handleKeyUp);
-    document.addEventListener('click', handleMouseClick);      // Click to fire
-    document.addEventListener('mousemove', blockMouseMovement); // Block mouse look
+    state.renderer.domElement.addEventListener('mousedown', (event) => {
+        if (event.button !== 0 || !gameStarted || isPaused || state.isGameOver) return;
+        if (document.pointerLockElement !== state.renderer.domElement) {
+            state.renderer.domElement.requestPointerLock?.();
+        }
+        attemptFire();
+    });
+    state.renderer.domElement.addEventListener('contextmenu', event => event.preventDefault());
+    document.addEventListener('mousemove', (event) => {
+        if (gameStarted && !isPaused && !state.isGameOver && document.pointerLockElement === state.renderer.domElement) {
+            queueMouseTurn(event.movementX);
+        }
+    });
+    window.addEventListener('blur', () => {
+        clearKeyboardState();
+        if (gameStarted && !state.isGameOver) togglePause(true);
+    });
     window.addEventListener('resize', onWindowResize, false);
 
-    // Don't start sounds or animation until user clicks start button
+    state.renderer.render(state.scene, state.camera);
 }
 
 function onWindowResize() {
@@ -126,43 +136,66 @@ function onWindowResize() {
     state.renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
-function animate() {
-    requestAnimationFrame(animate);
-    
+function clearKeyboardState() {
+    Object.keys(state.keyboardState).forEach(code => {
+        state.keyboardState[code] = false;
+    });
+}
+
+function attemptFire() {
+    const now = performance.now();
+    if (!gameStarted || isPaused || state.isGameOver || now - lastFireTime < GAME_PARAMS.FIRE_COOLDOWN) return;
+    if (fireProjectile()) {
+        lastFireTime = now;
+    }
+}
+
+function updateGame(deltaSeconds) {
     try {
-        if (!state.isGameOver) {
-            handleMovement();
-            updateProjectiles(gameOver);
-            // Update all active enemies (tanks, missiles, supertanks)
+        if (gameStarted && !isPaused && !state.isGameOver) {
+            simulationTime += deltaSeconds;
+            handleMovement(deltaSeconds);
+            updateProjectiles(deltaSeconds, gameOver);
             state.enemyTanks.filter(enemy => !enemy.isDestroyed).forEach(enemy => {
-                if (enemy.update) enemy.update();
+                if (enemy.update) enemy.update(deltaSeconds, () => damagePlayer(gameOver));
             });
             updateRadar();
             updateWaveDisplay();
             checkWaveCompletion();
         }
-        
+
         updateLivesDisplay();
-        updateCameraShake(); // Update camera shake effect
-        
-        // Force render - this should show something!
-        if (state.renderer && state.scene && state.camera) {
-            state.renderer.render(state.scene, state.camera);
-        } else {
-            console.error('Missing renderer components:', {
-                renderer: !!state.renderer,
-                scene: !!state.scene,
-                camera: !!state.camera
-            });
-        }
+        updateCameraShake(deltaSeconds);
     } catch (error) {
         console.error('Animation error:', error);
         console.error('Error stack:', error.stack);
     }
 }
 
+function render() {
+    if (state.renderer && state.scene && state.camera) {
+        state.renderer.render(state.scene, state.camera);
+    }
+}
+
+function animate(timestamp) {
+    animationFrameId = requestAnimationFrame(animate);
+    const deltaSeconds = lastFrameTime ? Math.min((timestamp - lastFrameTime) / 1000, 0.05) : 1 / 60;
+    lastFrameTime = timestamp;
+    updateGame(deltaSeconds);
+    render();
+}
+
 function gameOver() {
+    if (state.isGameOver) return;
     state.setGameOver(true);
+    isPaused = false;
+    clearKeyboardState();
+    document.exitPointerLock?.();
+    document.querySelector('.invulnerable-indicator')?.classList.remove('active');
+    const combatMessage = document.getElementById('combatMessage');
+    combatMessage?.classList.remove('active');
+    if (combatMessage) combatMessage.textContent = '';
     
     // Update high score
     const currentHighScore = parseInt(localStorage.getItem('battleZoneHighScore') || '0');
@@ -196,22 +229,6 @@ function gameOver() {
 
     state.tankBody.visible = false;
 
-    document.removeEventListener('keydown', state.handleKeyDown);
-    document.removeEventListener('keyup', state.handleKeyUp);
-
-    document.addEventListener('keydown', handleGameOverInput);
-}
-
-function handleGameOverInput(event) {
-    if (!state.isGameOver) return;
-    
-    if (event.code === 'KeyR') {
-        document.removeEventListener('keydown', handleGameOverInput);
-        resetGame();
-    } else if (event.code === 'Escape') {
-        document.removeEventListener('keydown', handleGameOverInput);
-        returnToMainMenu();
-    }
 }
 
 function updateGameOverStats() {
@@ -251,20 +268,24 @@ function returnToMainMenu() {
     if (startScreen) {
         startScreen.style.display = 'flex';
     }
-    
+    gameStarted = false;
+    isPaused = false;
+    document.getElementById('pauseScreen')?.classList.remove('active');
+    document.exitPointerLock?.();
+
     // Reset game state but don't start
     resetGameState();
+    render();
 }
 
 function resetGame() {
     resetGameState();
-    
+    gameStarted = true;
+    isPaused = false;
+
     // Hide game over screen and start playing
     state.gameOverScreen.style.display = 'none';
-    
-    // Re-enable controls
-    document.addEventListener('keydown', state.handleKeyDown);
-    document.addEventListener('keyup', state.handleKeyUp);
+    document.getElementById('pauseScreen')?.classList.remove('active');
 
     // Spawn first wave
     spawnWave(state.currentWave);
@@ -272,6 +293,18 @@ function resetGame() {
 }
 
 function resetGameState() {
+    if (waveTimer) {
+        clearTimeout(waveTimer);
+        waveTimer = null;
+    }
+    waveTransitionActive = false;
+    simulationTime = 0;
+    lastFireTime = -Infinity;
+    clearKeyboardState();
+    document.querySelector('.invulnerable-indicator')?.classList.remove('active');
+    const combatMessage = document.getElementById('combatMessage');
+    combatMessage?.classList.remove('active');
+    if (combatMessage) combatMessage.textContent = '';
     state.setGameOver(false);
     state.setPlayerInvulnerable(false);
 
@@ -288,11 +321,7 @@ function resetGameState() {
         state.tankCannon.rotation.set(0, 0, 0);
     }
 
-    // Clear all projectiles
-    for (const projectile of state.projectiles) {
-        state.scene.remove(projectile);
-    }
-    state.projectiles.length = 0;
+    clearProjectiles();
 
     // Clear all enemies
     for (const enemy of state.enemyTanks) {
@@ -312,7 +341,8 @@ function resetGameState() {
 }
 
 function checkWaveCompletion() {
-    if (state.enemiesRemaining <= 0 && !state.isGameOver) {
+    if (state.enemiesRemaining <= 0 && !state.isGameOver && !waveTransitionActive) {
+        waveTransitionActive = true;
         const completedWave = state.currentWave;
         state.setCurrentWave(state.currentWave + 1);
         
@@ -332,31 +362,37 @@ function checkWaveCompletion() {
         increaseDifficulty();
         
         // Spawn next wave after dramatic pause
-        setTimeout(() => {
+        waveTimer = setTimeout(() => {
             spawnWave(state.currentWave);
+            waveTransitionActive = false;
+            waveTimer = null;
             playSound('newWave');
-        }, 3000);
+        }, 2200);
     }
 }
 
 function increaseDifficulty() {
-    // Authentic Battle Zone: Enemies get slightly faster and more aggressive
     if (state.currentWave % 3 === 0) {
-        GAME_PARAMS.TANK_SPEED = Math.min(GAME_PARAMS.TANK_SPEED + 0.01, 0.25);
-        GAME_PARAMS.TANK_SHOT_INTERVAL = Math.max(GAME_PARAMS.TANK_SHOT_INTERVAL - 200, 1000);
+        showCombatMessage(`THREAT LEVEL ${state.currentWave}`, 1600);
     }
 }
 
 function startGame() {
+    if (gameStarted && !state.isGameOver) return;
     // Hide start screen
     const startScreen = document.getElementById('startScreen');
     if (startScreen) {
         startScreen.style.display = 'none';
     }
     
-    // Initialize audio AFTER user interaction
-    initSounds(state.camera);
-    setTimeout(() => playSound('engineIdle'), 1000);
+    gameStarted = true;
+    isPaused = false;
+
+    if (!audioInitialized) {
+        initSounds(state.camera);
+        audioInitialized = true;
+        setTimeout(() => playSound('engineIdle'), 1000);
+    }
     
     // Reset game state for new game
     resetGameState();
@@ -365,8 +401,38 @@ function startGame() {
     spawnWave(state.currentWave);
     updateLivesDisplay();
     
-    // Start game loop
-    animate();
+    showCombatMessage('LINK ESTABLISHED');
+
+    if (animationFrameId === null) {
+        lastFrameTime = 0;
+        animationFrameId = requestAnimationFrame(animate);
+    }
+}
+
+function togglePause(forcePaused) {
+    if (!gameStarted || state.isGameOver) return;
+    isPaused = typeof forcePaused === 'boolean' ? forcePaused : !isPaused;
+    clearKeyboardState();
+    document.getElementById('pauseScreen')?.classList.toggle('active', isPaused);
+    if (isPaused) document.exitPointerLock?.();
+    lastFrameTime = 0;
+}
+
+function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.();
+    } else {
+        document.exitFullscreen?.();
+    }
+}
+
+function showCombatMessage(message, duration = 1200) {
+    const element = document.getElementById('combatMessage');
+    if (!element) return;
+    clearTimeout(combatMessageTimer);
+    element.textContent = message;
+    element.classList.add('active');
+    combatMessageTimer = setTimeout(() => element.classList.remove('active'), duration);
 }
 
 // Set up the scene but don't start the game yet
@@ -381,4 +447,55 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Load and display high score
     updateHighScoreDisplay();
+
+    document.getElementById('resumeButton')?.addEventListener('click', () => togglePause(false));
 });
+
+window.render_game_to_text = () => {
+    const playerPosition = state.tankBody?.position || new THREE.Vector3();
+    const movement = getMovementState();
+    const mode = !gameStarted ? 'menu' : state.isGameOver ? 'gameOver' : isPaused ? 'paused' : waveTransitionActive ? 'waveTransition' : 'playing';
+    const enemies = state.enemyTanks
+        .filter(enemy => !enemy.isDestroyed)
+        .map(enemy => {
+            const dx = enemy.body.position.x - playerPosition.x;
+            const dz = enemy.body.position.z - playerPosition.z;
+            return {
+                type: enemy.type,
+                x: Number(enemy.body.position.x.toFixed(1)),
+                z: Number(enemy.body.position.z.toFixed(1)),
+                distance: Number(Math.hypot(dx, dz).toFixed(1))
+            };
+        })
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 10);
+
+    return JSON.stringify({
+        coordinateSystem: 'Ground plane uses x east/west and z north/south; heading 0 faces -z.',
+        mode,
+        player: {
+            x: Number(playerPosition.x.toFixed(2)),
+            z: Number(playerPosition.z.toFixed(2)),
+            headingDegrees: Number(THREE.MathUtils.radToDeg(state.tankBody?.rotation.y || 0).toFixed(1)),
+            speed: Number(movement.speed.toFixed(2)),
+            lives: state.lives,
+            shielded: state.playerInvulnerable
+        },
+        score: state.score,
+        highScore: state.highScore,
+        wave: state.currentWave,
+        enemiesRemaining: state.enemiesRemaining,
+        enemies,
+        projectiles: state.projectiles.map(projectile => ({
+            owner: projectile.userData.isEnemyProjectile ? 'enemy' : 'player',
+            x: Number(projectile.position.x.toFixed(1)),
+            z: Number(projectile.position.z.toFixed(1))
+        }))
+    });
+};
+
+window.advanceTime = (milliseconds) => {
+    const steps = Math.max(1, Math.round(milliseconds / (1000 / 60)));
+    for (let i = 0; i < steps; i++) updateGame(1 / 60);
+    render();
+};

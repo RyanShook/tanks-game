@@ -6,7 +6,7 @@
  * 
  * Key Features:
  * - Wireframe tank construction (body, turret, cannon)
- * - Dual-tread movement like the arcade cabinet (Q/A left, W/S right)
+ * - Windows-style WASD/arrow movement with optional mouse steering
  * - First-person camera fixed to tank body
  * - Turret locked forward to mimic periscope targeting
  * - Collision detection and boundary enforcement
@@ -108,12 +108,12 @@ function createCannon(radius, length) {
  * Create the complete player tank system
  * Assembles body, turret, cannon and sets up first-person camera
  */
-let leftTrackVelocity = 0;
-let rightTrackVelocity = 0;
+let driveVelocity = 0;
+let turnVelocity = 0;
+let queuedMouseTurn = 0;
 
 export function createPlayer() {
-    leftTrackVelocity = 0;
-    rightTrackVelocity = 0;
+    resetTracks();
     // === TANK GEOMETRY CREATION ===
     const bodyWidth = 2, bodyHeight = 1, bodyDepth = 3;
     const tankBody = createTankBody(bodyWidth, bodyHeight, bodyDepth);
@@ -147,58 +147,55 @@ export function createPlayer() {
     tankCannon.visible = false;
 }
 
-function updateTrackVelocity(current, input) {
-    const target = input * GAME_PARAMS.TRACK_MAX_SPEED;
-    if (input !== 0) {
-        if (current < target) {
-            current = Math.min(current + GAME_PARAMS.TRACK_ACCELERATION, target);
-        } else if (current > target) {
-            current = Math.max(current - GAME_PARAMS.TRACK_ACCELERATION, target);
-        }
-    } else {
-        if (current > 0) {
-            current = Math.max(0, current - GAME_PARAMS.TRACK_DECELERATION);
-        } else if (current < 0) {
-            current = Math.min(0, current + GAME_PARAMS.TRACK_DECELERATION);
-        }
-    }
-    return current;
+export function resetTracks() {
+    driveVelocity = 0;
+    turnVelocity = 0;
+    queuedMouseTurn = 0;
 }
 
-export function resetTracks() {
-    leftTrackVelocity = 0;
-    rightTrackVelocity = 0;
+export function queueMouseTurn(deltaX) {
+    queuedMouseTurn += THREE.MathUtils.clamp(deltaX, -120, 120) * GAME_PARAMS.MOUSE_SENSITIVITY;
+}
+
+export function getMovementState() {
+    return {
+        speed: driveVelocity,
+        turnSpeed: turnVelocity
+    };
 }
 
 /**
  * Handle player tank movement and controls
- * Implements authentic Battle Zone dual-joystick style controls
- * Q/A control the left tread, W/S control the right tread
- * Arrow keys also map to the right tread for accessibility
+ * Implements familiar Windows tank controls while retaining momentum.
+ * W/S (or up/down) drive and A/D (or left/right) steer.
  */
-export function handleMovement() {
+export function handleMovement(deltaSeconds = 1 / 60) {
     if (state.isGameOver) return;
 
     // Store position for collision reversion
     const previousPosition = state.tankBody.position.clone();
 
-    const leftInput = (state.keyboardState['KeyQ'] ? 1 : 0) - (state.keyboardState['KeyA'] ? 1 : 0);
-    const rightInput = ((state.keyboardState['KeyW'] ? 1 : 0) + (state.keyboardState['ArrowUp'] ? 1 : 0))
-        - ((state.keyboardState['KeyS'] ? 1 : 0) + (state.keyboardState['ArrowDown'] ? 1 : 0));
+    const forwardInput = (state.keyboardState.KeyW || state.keyboardState.ArrowUp ? 1 : 0)
+        - (state.keyboardState.KeyS || state.keyboardState.ArrowDown ? 1 : 0);
+    const turnInput = (state.keyboardState.KeyD || state.keyboardState.ArrowRight ? 1 : 0)
+        - (state.keyboardState.KeyA || state.keyboardState.ArrowLeft ? 1 : 0);
 
-    leftTrackVelocity = updateTrackVelocity(leftTrackVelocity, leftInput);
-    rightTrackVelocity = updateTrackVelocity(rightTrackVelocity, rightInput);
+    driveVelocity = THREE.MathUtils.damp(
+        driveVelocity,
+        forwardInput * GAME_PARAMS.DRIVE_MAX_SPEED,
+        GAME_PARAMS.DRIVE_RESPONSE,
+        deltaSeconds
+    );
+    turnVelocity = THREE.MathUtils.damp(
+        turnVelocity,
+        turnInput * GAME_PARAMS.TURN_MAX_SPEED,
+        GAME_PARAMS.TURN_RESPONSE,
+        deltaSeconds
+    );
 
-    const forwardSpeed = (leftTrackVelocity + rightTrackVelocity) * 0.5;
-    const turnSpeed = (rightTrackVelocity - leftTrackVelocity) * GAME_PARAMS.TRACK_TURN_FACTOR;
-
-    if (turnSpeed !== 0) {
-        state.tankBody.rotation.y -= turnSpeed;
-    }
-
-    if (forwardSpeed !== 0) {
-        state.tankBody.translateZ(-forwardSpeed);
-    }
+    state.tankBody.rotation.y -= turnVelocity * deltaSeconds + queuedMouseTurn;
+    queuedMouseTurn = 0;
+    state.tankBody.translateZ(-driveVelocity * deltaSeconds);
 
     // Turret stays locked forward like the original periscope view
     if (state.tankTurret) {
